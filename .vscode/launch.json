@@ -1,0 +1,16 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Launch SHOORA AI Editor",
+      "type": "extensionHost",
+      "request": "launch",
+      "args": [
+        "--extensionDevelopmentPath=${workspaceFolder}/extensions/shoora-ai"
+      ],
+      "outFiles": [
+        "${workspaceFolder}/extensions/shoora-ai/dist/**/*.js"
+      ]
+    }
+  ]
+}

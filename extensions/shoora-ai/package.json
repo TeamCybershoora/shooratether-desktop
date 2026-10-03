@@ -1,0 +1,110 @@
+{
+  "name": "shoora-ai",
+  "displayName": "SHOORA AI",
+  "description": "Native AI Assistant for SHOORA TETHER by Cybershoora Pvt. Ltd.",
+  "version": "1.0.0",
+  "publisher": "cybershoora",
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "categories": [
+    "AI",
+    "Programming Languages",
+    "Machine Learning"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./dist/extension.js",
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.90.0",
+    "@types/node": "^20.0.0",
+    "typescript": "^5.4.0"
+  },
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "shoora-ai-sidebar",
+          "title": "SHOORA AI",
+          "icon": "resources/shoora-icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "shoora-ai-sidebar": [
+        {
+          "type": "webview",
+          "id": "shoora.chatView",
+          "name": "Chat with Shoora"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "shoora.openChat",
+        "title": "SHOORA: Open AI Chat",
+        "category": "SHOORA AI"
+      },
+      {
+        "command": "shoora.inlineEdit",
+        "title": "SHOORA: Inline Edit / Generate Code",
+        "category": "SHOORA AI"
+      },
+      {
+        "command": "shoora.explainSelection",
+        "title": "SHOORA: Explain Selected Code",
+        "category": "SHOORA AI"
+      },
+      {
+        "command": "shoora.fixSelection",
+        "title": "SHOORA: Fix Code / Bugs",
+        "category": "SHOORA AI"
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "shoora.inlineEdit",
+        "key": "ctrl+k",
+        "mac": "cmd+k",
+        "when": "editorTextFocus"
+      },
+      {
+        "command": "shoora.openChat",
+        "key": "ctrl+l",
+        "mac": "cmd+l"
+      }
+    ],
+    "configuration": {
+      "title": "SHOORA AI",
+      "properties": {
+        "shoora.provider": {
+          "type": "string",
+          "default": "gemini",
+          "enum": ["gemini", "openai", "claude", "ollama"],
+          "description": "Select the AI Provider"
+        },
+        "shoora.apiKey": {
+          "type": "string",
+          "default": "",
+          "description": "API Key for selected provider (Google Gemini, OpenAI, or Anthropic)"
+        },
+        "shoora.ollamaEndpoint": {
+          "type": "string",
+          "default": "http://localhost:11434",
+          "description": "Local Ollama server URL"
+        },
+        "shoora.model": {
+          "type": "string",
+          "default": "gemini-1.5-flash",
+          "description": "Model identifier"
+        }
+      }
+    }
+  }
+}

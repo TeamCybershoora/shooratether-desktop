@@ -1,0 +1,107 @@
+name: Build & Release SHOORA TETHER
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-windows:
+    name: Build Windows (.exe)
+    runs-on: windows-2022
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        env:
+          VSCODE_SKIP_NODE_VERSION_CHECK: '1'
+        run: |
+          npm ci --ignore-scripts
+          npm run postinstall
+
+      - name: Compile SHOORA TETHER
+        run: npm run compile
+
+      - name: Package Windows Installer (.exe)
+        run: npm run gulp vscode-win32-x64-inno-updater
+
+      - name: Upload Release Asset
+        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: |
+            .build/win32-x64/**/*.exe
+            .build/win32-x64/**/*.zip
+
+  build-macos:
+    name: Build macOS (.dmg)
+    runs-on: macos-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        env:
+          VSCODE_SKIP_NODE_VERSION_CHECK: '1'
+        run: npm ci
+
+      - name: Compile SHOORA TETHER
+        run: npm run compile
+
+      - name: Package macOS Build
+        run: npm run gulp vscode-darwin-arm64-min
+
+      - name: Upload Release Asset
+        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: .build/darwin-arm64/**/*.zip
+
+  build-linux:
+    name: Build Linux (.deb)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        env:
+          VSCODE_SKIP_NODE_VERSION_CHECK: '1'
+        run: npm ci
+
+      - name: Compile SHOORA TETHER
+        run: npm run compile
+
+      - name: Package Linux Build
+        run: npm run gulp vscode-linux-x64-min
+
+      - name: Upload Release Asset
+        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: .build/linux-x64/**/*.deb
