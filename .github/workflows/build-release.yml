@@ -28,51 +28,37 @@ jobs:
           python-version: '3.11'
 
       - name: Install dependencies
+        shell: cmd
         env:
           VSCODE_SKIP_NODE_VERSION_CHECK: '1'
         run: |
-          npm ci --ignore-scripts
-          npm run postinstall
+          call npm ci --ignore-scripts
+          call npm run postinstall
 
-      - name: Compile SHOORA AI Extension
+      - name: Compile and Package Windows Client
+        shell: cmd
+        env:
+          VSCODE_SKIP_NODE_VERSION_CHECK: '1'
+        run: |
+          call npm run compile
+          call npm run gulp vscode-win32-x64-min
+          call npm run gulp vscode-win32-x64-inno-updater
+          call npm run gulp vscode-win32-x64-user-setup
+
+      - name: Prepare Release Executable
         shell: pwsh
         run: |
-          if (Test-Path "extensions/shoora-ai") {
-            cd extensions/shoora-ai
-            npm install --no-package-lock
-            npx tsc
-            cd ../..
-          }
-
-      - name: Compile SHOORA TETHER Core
-        run: npm run compile
-
-      - name: Package Windows Client & Installer
-        shell: pwsh
-        run: |
-          # 1. Package the full Electron client binary
-          npm run gulp vscode-win32-x64-min
-
-          # 2. Add inno updater and update icons
-          npm run gulp vscode-win32-x64-inno-updater
-
-          # 3. Build Windows Inno Setup installer
-          npm run gulp vscode-win32-x64-user-setup
-
-          # 4. Prepare release directory with exact filename
           New-Item -ItemType Directory -Force -Path "release-assets"
           $setupExe = Get-ChildItem -Path ".build\win32-x64" -Recurse -Filter "*.exe" | Select-Object -First 1
           if ($setupExe) {
             Copy-Item $setupExe.FullName "release-assets\Shoora-Tether-Setup-x64.exe" -Force
-            Write-Host "Created: release-assets\Shoora-Tether-Setup-x64.exe"
+            Write-Host "Prepared Shoora-Tether-Setup-x64.exe from $($setupExe.FullName)"
           } else {
-            Write-Host "No installer exe found, falling back to archive"
+            Write-Host "Warning: No setup exe found"
           }
-
-          # 5. Create portable zip
           if (Test-Path "..\VSCode-win32-x64") {
             Compress-Archive -Path "..\VSCode-win32-x64\*" -DestinationPath "release-assets\Shoora-Tether-win32-x64-portable.zip" -Force
-            Write-Host "Created portable archive"
+            Write-Host "Prepared Shoora-Tether-win32-x64-portable.zip"
           }
 
       - name: Upload Release Asset
