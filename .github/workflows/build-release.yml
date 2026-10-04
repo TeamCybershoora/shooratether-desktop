@@ -49,7 +49,7 @@ jobs:
       - name: Install extension packages
         shell: pwsh
         run: |
-          $lockFiles = Get-ChildItem -Path "extensions" -Recurse -Filter "package-lock.json"
+          $lockFiles = Get-ChildItem -Path @("extensions", ".vscode\extensions") -Recurse -Filter "package-lock.json" -ErrorAction SilentlyContinue
           foreach ($lock in $lockFiles) {
             $dir = $lock.DirectoryName
             Write-Host "Installing dependencies in: $dir"
