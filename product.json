@@ -31,7 +31,7 @@
 	"linuxDesktopName": "com.cybershoora.shoora-tether",
 	"linuxIconName": "shoora-tether",
 	"licenseFileName": "LICENSE.txt",
-	"reportIssueUrl": "https://github.com/cybershoora/shoora-tether/issues",
+	"reportIssueUrl": "https://github.com/TeamCybershoora/shooratether-desktop/issues",
 	"nodejsArtifactFeed": "",
 	"electronArtifactFeed": "",
 	"urlProtocol": "shoora-tether",

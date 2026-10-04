@@ -34,74 +34,54 @@ jobs:
           npm ci --ignore-scripts
           npm run postinstall
 
-      - name: Compile SHOORA TETHER
+      - name: Compile SHOORA AI Extension
+        shell: pwsh
+        run: |
+          if (Test-Path "extensions/shoora-ai") {
+            cd extensions/shoora-ai
+            npm install --no-package-lock
+            npx tsc
+            cd ../..
+          }
+
+      - name: Compile SHOORA TETHER Core
         run: npm run compile
 
-      - name: Package Windows Installer (.exe)
-        run: npm run gulp vscode-win32-x64-inno-updater
+      - name: Package Windows Client & Installer
+        shell: pwsh
+        run: |
+          # 1. Package the full Electron client binary
+          npm run gulp vscode-win32-x64-min
+
+          # 2. Add inno updater and update icons
+          npm run gulp vscode-win32-x64-inno-updater
+
+          # 3. Build Windows Inno Setup installer
+          npm run gulp vscode-win32-x64-user-setup
+
+          # 4. Prepare release directory with exact filename
+          New-Item -ItemType Directory -Force -Path "release-assets"
+          $setupExe = Get-ChildItem -Path ".build\win32-x64" -Recurse -Filter "*.exe" | Select-Object -First 1
+          if ($setupExe) {
+            Copy-Item $setupExe.FullName "release-assets\Shoora-Tether-Setup-x64.exe" -Force
+            Write-Host "Created: release-assets\Shoora-Tether-Setup-x64.exe"
+          } else {
+            Write-Host "No installer exe found, falling back to archive"
+          }
+
+          # 5. Create portable zip
+          if (Test-Path "..\VSCode-win32-x64") {
+            Compress-Archive -Path "..\VSCode-win32-x64\*" -DestinationPath "release-assets\Shoora-Tether-win32-x64-portable.zip" -Force
+            Write-Host "Created portable archive"
+          }
 
       - name: Upload Release Asset
         uses: softprops/action-gh-release@v2
-        if: startsWith(github.ref, 'refs/tags/')
         with:
-          files: |
-            .build/win32-x64/**/*.exe
-            .build/win32-x64/**/*.zip
-
-  build-macos:
-    name: Build macOS (.dmg)
-    runs-on: macos-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
-
-      - name: Install dependencies
+          name: SHOORA TETHER ${{ github.ref_name }}
+          files: release-assets/*
+          fail_on_unmatched_files: false
+          prerelease: false
+          draft: false
         env:
-          VSCODE_SKIP_NODE_VERSION_CHECK: '1'
-        run: npm ci
-
-      - name: Compile SHOORA TETHER
-        run: npm run compile
-
-      - name: Package macOS Build
-        run: npm run gulp vscode-darwin-arm64-min
-
-      - name: Upload Release Asset
-        uses: softprops/action-gh-release@v2
-        if: startsWith(github.ref, 'refs/tags/')
-        with:
-          files: .build/darwin-arm64/**/*.zip
-
-  build-linux:
-    name: Build Linux (.deb)
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
-
-      - name: Install dependencies
-        env:
-          VSCODE_SKIP_NODE_VERSION_CHECK: '1'
-        run: npm ci
-
-      - name: Compile SHOORA TETHER
-        run: npm run compile
-
-      - name: Package Linux Build
-        run: npm run gulp vscode-linux-x64-min
-
-      - name: Upload Release Asset
-        uses: softprops/action-gh-release@v2
-        if: startsWith(github.ref, 'refs/tags/')
-        with:
-          files: .build/linux-x64/**/*.deb
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
