@@ -13,58 +13,95 @@ jobs:
   build-windows:
     name: Build Windows (.exe)
     runs-on: windows-2022
+    timeout-minutes: 120
+
+    env:
+      VSCODE_SKIP_NODE_VERSION_CHECK: '1'
+      ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
+      npm_command: ci
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
+      - name: Setup Node.js 24
         uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: '24.18.0'
 
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
 
-      - name: Install dependencies
+      # Step 1: Install root deps (skipping scripts so preinstall/postinstall don't run)
+      - name: Install root npm dependencies
         shell: cmd
-        env:
-          VSCODE_SKIP_NODE_VERSION_CHECK: '1'
-        run: |
-          call npm ci --ignore-scripts
-          call npm run postinstall
+        run: npm ci --ignore-scripts
 
-      - name: Compile and Package Windows Client
+      # Step 2: Install build/ sub-dependencies (needed for gulp tasks)
+      - name: Install build/ npm dependencies
         shell: cmd
-        env:
-          VSCODE_SKIP_NODE_VERSION_CHECK: '1'
-        run: |
-          call npm run compile
-          call npm run gulp vscode-win32-x64-min
-          call npm run gulp vscode-win32-x64-inno-updater
-          call npm run gulp vscode-win32-x64-user-setup
+        run: cd build && npm ci --ignore-scripts
 
-      - name: Prepare Release Executable
+      # Step 3: Install extensions/ top-level deps (for extension packaging)
+      - name: Install extensions/ npm dependencies
+        shell: cmd
+        run: cd extensions && npm ci --ignore-scripts --if-present
+
+      # Step 4: Compile client TypeScript (skip copilot extension to avoid private deps)
+      - name: Compile client TypeScript
+        shell: cmd
+        run: npm run compile-client
+
+      # Step 5: Package VS Code for Windows
+      - name: Package Windows x64 client
+        shell: cmd
+        run: npm run gulp vscode-win32-x64-min
+
+      # Step 6: Build Windows installer
+      - name: Build Windows installer (.exe)
+        shell: cmd
+        run: npm run gulp vscode-win32-x64-user-setup
+
+      # Step 7: Collect artifacts
+      - name: Prepare release artifacts
         shell: pwsh
         run: |
-          New-Item -ItemType Directory -Force -Path "release-assets"
-          $setupExe = Get-ChildItem -Path ".build\win32-x64" -Recurse -Filter "*.exe" | Select-Object -First 1
+          New-Item -ItemType Directory -Force -Path "release-assets" | Out-Null
+
+          # Find the setup exe
+          $setupExe = Get-ChildItem -Path ".build\win32-x64" -Recurse -Filter "*.exe" -ErrorAction SilentlyContinue | Select-Object -First 1
           if ($setupExe) {
             Copy-Item $setupExe.FullName "release-assets\Shoora-Tether-Setup-x64.exe" -Force
-            Write-Host "Prepared Shoora-Tether-Setup-x64.exe from $($setupExe.FullName)"
+            Write-Host "✅ Found installer: $($setupExe.FullName)"
           } else {
-            Write-Host "Warning: No setup exe found"
-          }
-          if (Test-Path "..\VSCode-win32-x64") {
-            Compress-Archive -Path "..\VSCode-win32-x64\*" -DestinationPath "release-assets\Shoora-Tether-win32-x64-portable.zip" -Force
-            Write-Host "Prepared Shoora-Tether-win32-x64-portable.zip"
+            Write-Host "⚠️  No .exe found in .build\win32-x64, listing directory:"
+            Get-ChildItem -Path ".build" -Recurse -ErrorAction SilentlyContinue | Select-Object FullName | Format-Table
+            exit 1
           }
 
+          # Also create portable zip if VSCode-win32-x64 folder exists
+          if (Test-Path "..\VSCode-win32-x64") {
+            Compress-Archive -Path "..\VSCode-win32-x64\*" -DestinationPath "release-assets\Shoora-Tether-win32-x64-portable.zip" -Force
+            Write-Host "✅ Created portable zip"
+          }
+
+      # Step 8: Create GitHub Release and upload assets
       - name: Upload Release Asset
         uses: softprops/action-gh-release@v2
         with:
           name: SHOORA TETHER ${{ github.ref_name }}
+          body: |
+            ## SHOORA TETHER ${{ github.ref_name }}
+
+            ### Windows Installation
+            1. Download `Shoora-Tether-Setup-x64.exe`
+            2. Run the installer
+            3. Launch SHOORA TETHER from Start Menu
+
+            ### Portable Version
+            Download `Shoora-Tether-win32-x64-portable.zip` and extract anywhere.
           files: release-assets/*
           fail_on_unmatched_files: false
           prerelease: false
