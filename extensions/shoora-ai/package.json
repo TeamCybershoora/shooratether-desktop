@@ -65,6 +65,21 @@
         "command": "shoora.fixSelection",
         "title": "SHOORA: Fix Code / Bugs",
         "category": "SHOORA AI"
+      },
+      {
+        "command": "shoora.runAgentTask",
+        "title": "SHOORA: Run Agent Task",
+        "category": "SHOORA AI"
+      },
+      {
+        "command": "shoora.cancelTask",
+        "title": "SHOORA: Cancel Running Task",
+        "category": "SHOORA AI"
+      },
+      {
+        "command": "shoora.clearChat",
+        "title": "SHOORA: Clear Conversation",
+        "category": "SHOORA AI"
       }
     ],
     "keybindings": [
@@ -103,6 +118,11 @@
           "type": "string",
           "default": "gemini-1.5-flash",
           "description": "Model identifier"
+        },
+        "shoora.security.autoApproveSensitive": {
+          "type": "boolean",
+          "default": false,
+          "description": "Auto-approve sensitive operations (file writes, edits) without asking each time. Critical operations always require approval."
         }
       }
     }

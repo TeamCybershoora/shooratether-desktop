@@ -1,12 +1,24 @@
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Cybershoora Pvt. Ltd. All rights reserved.
+ *  Licensed under the MIT License.
+ *--------------------------------------------------------------------------------------------*/
+
 import * as vscode from 'vscode';
+import { AgentOrchestrator } from './agent/AgentOrchestrator.js';
+import { ApprovalRequest } from './agent/types.js';
+
+let globalOrchestrator: AgentOrchestrator | undefined;
 
 export function activate(context: vscode.ExtensionContext) {
-    const provider = new ShooraChatViewProvider(context.extensionUri);
+    const orchestrator = new AgentOrchestrator();
+    globalOrchestrator = orchestrator;
+
+    const chatProvider = new ShooraChatViewProvider(context.extensionUri, orchestrator);
     context.subscriptions.push(
-        vscode.window.registerWebviewViewProvider(ShooraChatViewProvider.viewType, provider)
+        vscode.window.registerWebviewViewProvider(ShooraChatViewProvider.viewType, chatProvider)
     );
 
-    // Ctrl+K Inline Edit Command (Cursor style)
+    // Ctrl+K Inline Edit Command
     const inlineEditCmd = vscode.commands.registerCommand('shoora.inlineEdit', async () => {
         const editor = vscode.window.activeTextEditor;
         if (!editor) {
@@ -30,7 +42,8 @@ export function activate(context: vscode.ExtensionContext) {
             cancellable: false
         }, async () => {
             try {
-                const generatedCode = await queryAI(prompt, selectedText, editor.document.languageId);
+                const fullTask = `Generate or edit code for active file "${editor.document.fileName}". Selection was:\n${selectedText}\nUser request: ${prompt}\nPlease output only the replacement code snippet.`;
+                const generatedCode = await orchestrator.runTask(fullTask, 3);
                 await editor.edit(editBuilder => {
                     if (selection.isEmpty) {
                         editBuilder.insert(selection.active, generatedCode);
@@ -49,6 +62,27 @@ export function activate(context: vscode.ExtensionContext) {
         vscode.commands.executeCommand('shoora.chatView.focus');
     });
 
+    const runAgentTaskCmd = vscode.commands.registerCommand('shoora.runAgentTask', async () => {
+        const prompt = await vscode.window.showInputBox({
+            prompt: 'Ask Shoora AI Agent to perform a task',
+            placeHolder: 'e.g. inspect project and run tests, deploy to AWS, create GitHub repo...'
+        });
+        if (!prompt) return;
+        vscode.commands.executeCommand('shoora.chatView.focus');
+        chatProvider.sendCustomMessage(prompt);
+    });
+
+    const cancelTaskCmd = vscode.commands.registerCommand('shoora.cancelTask', () => {
+        orchestrator.cancel();
+        vscode.window.showInformationMessage('Shoora Agent task cancelled.');
+    });
+
+    const clearChatCmd = vscode.commands.registerCommand('shoora.clearChat', () => {
+        orchestrator.clearHistory();
+        chatProvider.resetChat();
+        vscode.window.showInformationMessage('Shoora Agent conversation cleared.');
+    });
+
     const explainCmd = vscode.commands.registerCommand('shoora.explainSelection', async () => {
         const editor = vscode.window.activeTextEditor;
         if (!editor) return;
@@ -58,7 +92,7 @@ export function activate(context: vscode.ExtensionContext) {
             return;
         }
         vscode.commands.executeCommand('shoora.chatView.focus');
-        provider.sendCustomMessage(`Explain this code in detail:\n\`\`\`${editor.document.languageId}\n${selection}\n\`\`\``);
+        chatProvider.sendCustomMessage(`Explain this code in detail:\n\`\`\`${editor.document.languageId}\n${selection}\n\`\`\``);
     });
 
     const fixCmd = vscode.commands.registerCommand('shoora.fixSelection', async () => {
@@ -70,17 +104,61 @@ export function activate(context: vscode.ExtensionContext) {
             return;
         }
         vscode.commands.executeCommand('shoora.chatView.focus');
-        provider.sendCustomMessage(`Find and fix any bugs or issues in this code:\n\`\`\`${editor.document.languageId}\n${selection}\n\`\`\``);
+        chatProvider.sendCustomMessage(`Find and fix any bugs or issues in this code:\n\`\`\`${editor.document.languageId}\n${selection}\n\`\`\``);
     });
 
-    context.subscriptions.push(inlineEditCmd, openChatCmd, explainCmd, fixCmd);
+    context.subscriptions.push(
+        inlineEditCmd,
+        openChatCmd,
+        runAgentTaskCmd,
+        cancelTaskCmd,
+        clearChatCmd,
+        explainCmd,
+        fixCmd
+    );
+}
+
+export function deactivate() {
+    if (globalOrchestrator) {
+        globalOrchestrator.cancel();
+    }
 }
 
 class ShooraChatViewProvider implements vscode.WebviewViewProvider {
     public static readonly viewType = 'shoora.chatView';
     private _view?: vscode.WebviewView;
+    private pendingApprovalResolve?: (approved: boolean) => void;
 
-    constructor(private readonly _extensionUri: vscode.Uri) {}
+    constructor(
+        private readonly _extensionUri: vscode.Uri,
+        private readonly orchestrator: AgentOrchestrator
+    ) {
+        // Wire up approval handler to the webview UI
+        this.orchestrator.getSecurityGuard().setCustomHandler((req) => this.handleApprovalRequest(req));
+
+        // Stream live events from the agent orchestrator into the webview
+        this.orchestrator.onEvent((event) => {
+            if (this._view) {
+                this._view.webview.postMessage({ type: 'agentEvent', event });
+            }
+        });
+    }
+
+    private handleApprovalRequest(req: ApprovalRequest): Promise<boolean> {
+        return new Promise<boolean>((resolve) => {
+            this.pendingApprovalResolve = resolve;
+            this._view?.webview.postMessage({
+                type: 'approvalRequired',
+                request: {
+                    toolName: req.toolName,
+                    securityLevel: req.securityLevel,
+                    description: req.description,
+                    arguments: req.arguments,
+                    warning: req.warning
+                }
+            });
+        });
+    }
 
     public resolveWebviewView(webviewView: vscode.WebviewView) {
         this._view = webviewView;
@@ -89,15 +167,23 @@ class ShooraChatViewProvider implements vscode.WebviewViewProvider {
 
         webviewView.webview.onDidReceiveMessage(async (data) => {
             if (data.type === 'sendMessage') {
-                const editor = vscode.window.activeTextEditor;
-                const contextCode = editor ? editor.document.getText(editor.selection) : '';
-                const languageId = editor ? editor.document.languageId : 'plaintext';
-
                 try {
-                    const response = await queryAI(data.text, contextCode, languageId);
-                    this._view?.webview.postMessage({ type: 'aiResponse', text: response });
+                    await this.orchestrator.runTask(data.text);
                 } catch (err: any) {
-                    this._view?.webview.postMessage({ type: 'aiError', error: err.message || 'Failed to get response' });
+                    this._view?.webview.postMessage({
+                        type: 'aiError',
+                        error: err?.message || 'Agent encountered an error.'
+                    });
+                }
+            } else if (data.type === 'cancelTask') {
+                this.orchestrator.cancel();
+            } else if (data.type === 'clearChat') {
+                this.orchestrator.clearHistory();
+                this._view?.webview.postMessage({ type: 'chatCleared' });
+            } else if (data.type === 'approvalResponse') {
+                if (this.pendingApprovalResolve) {
+                    this.pendingApprovalResolve(data.approved === true);
+                    this.pendingApprovalResolve = undefined;
                 }
             } else if (data.type === 'insertCode') {
                 const editor = vscode.window.activeTextEditor;
@@ -114,50 +200,286 @@ class ShooraChatViewProvider implements vscode.WebviewViewProvider {
         this._view?.webview.postMessage({ type: 'autoAsk', text });
     }
 
+    public resetChat() {
+        this._view?.webview.postMessage({ type: 'chatCleared' });
+    }
+
     private _getHtmlForWebview(): string {
         return `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <style>
-    body { font-family: var(--vscode-font-family); background: var(--vscode-sideBar-background); color: var(--vscode-foreground); margin: 0; padding: 12px; display: flex; flex-direction: column; height: 95vh; }
-    #header { font-weight: bold; font-size: 14px; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; border-bottom: 1px solid var(--vscode-sideBar-border); padding-bottom: 8px; color: var(--vscode-symbolIcon-colorForeground, #f43f5e); }
-    #messages { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; padding-bottom: 10px; }
-    .msg { padding: 8px 12px; border-radius: 6px; font-size: 13px; max-width: 90%; line-height: 1.4; word-break: break-word; }
-    .user { background: var(--vscode-button-background); color: var(--vscode-button-foreground); align-self: flex-end; }
-    .ai { background: var(--vscode-editor-background); border: 1px solid var(--vscode-editorWidget-border); align-self: flex-start; }
-    #input-box { display: flex; gap: 6px; margin-top: 8px; }
-    textarea { flex: 1; background: var(--vscode-input-background); color: var(--vscode-input-foreground); border: 1px solid var(--vscode-input-border); border-radius: 4px; padding: 6px; resize: none; font-family: inherit; font-size: 12px; }
-    button { background: var(--vscode-button-background); color: var(--vscode-button-foreground); border: none; border-radius: 4px; padding: 6px 12px; cursor: pointer; font-weight: 600; }
-    button:hover { background: var(--vscode-button-hoverBackground); }
-    pre { background: #18181b; padding: 8px; border-radius: 4px; overflow-x: auto; font-family: var(--vscode-editor-font-family); }
+    body {
+      font-family: var(--vscode-font-family);
+      background: var(--vscode-sideBar-background);
+      color: var(--vscode-foreground);
+      margin: 0;
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      height: 96vh;
+      box-sizing: border-box;
+    }
+    #header {
+      font-weight: 600;
+      font-size: 13px;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--vscode-sideBar-border);
+      padding-bottom: 8px;
+    }
+    .header-title {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--vscode-foreground);
+    }
+    .header-actions {
+      display: flex;
+      gap: 4px;
+    }
+    .icon-btn {
+      background: transparent;
+      border: none;
+      color: var(--vscode-descriptionForeground);
+      cursor: pointer;
+      padding: 3px 6px;
+      border-radius: 3px;
+      font-size: 11px;
+    }
+    .icon-btn:hover {
+      background: var(--vscode-toolbar-hoverBackground);
+      color: var(--vscode-foreground);
+    }
+    #messages {
+      flex: 1;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      padding-bottom: 10px;
+    }
+    .msg {
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-size: 12.5px;
+      line-height: 1.45;
+      word-break: break-word;
+    }
+    .user {
+      background: var(--vscode-button-background);
+      color: var(--vscode-button-foreground);
+      align-self: flex-end;
+      max-width: 85%;
+    }
+    .ai {
+      background: var(--vscode-editor-background);
+      border: 1px solid var(--vscode-widget-border, rgba(255,255,255,0.1));
+      align-self: flex-start;
+      width: 95%;
+    }
+    .step-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 11px;
+      background: var(--vscode-badge-background);
+      color: var(--vscode-badge-foreground);
+      padding: 2px 7px;
+      border-radius: 10px;
+      margin-bottom: 6px;
+      font-weight: 600;
+    }
+    .tool-card {
+      margin: 6px 0;
+      padding: 6px 10px;
+      background: rgba(255, 255, 255, 0.04);
+      border-left: 3px solid var(--vscode-textLink-foreground, #3b82f6);
+      border-radius: 0 4px 4px 0;
+      font-family: var(--vscode-editor-font-family, monospace);
+      font-size: 11.5px;
+    }
+    .tool-card.success {
+      border-left-color: #22c55e;
+    }
+    .tool-card.error {
+      border-left-color: #ef4444;
+    }
+    .tool-output {
+      max-height: 120px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      background: rgba(0,0,0,0.2);
+      padding: 4px 6px;
+      border-radius: 3px;
+      margin-top: 4px;
+      font-size: 11px;
+    }
+    .approval-box {
+      border: 1px solid #f59e0b;
+      background: rgba(245, 158, 11, 0.1);
+      border-radius: 6px;
+      padding: 10px;
+      margin: 8px 0;
+    }
+    .approval-title {
+      font-weight: bold;
+      color: #f59e0b;
+      margin-bottom: 4px;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .approval-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 8px;
+    }
+    .btn-approve {
+      background: #16a34a;
+      color: #fff;
+      border: none;
+      padding: 4px 10px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 11px;
+    }
+    .btn-reject {
+      background: #dc2626;
+      color: #fff;
+      border: none;
+      padding: 4px 10px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 11px;
+    }
+    #input-container {
+      margin-top: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      padding-top: 6px;
+      border-top: 1px solid var(--vscode-sideBar-border);
+    }
+    #promptInput {
+      width: 100%;
+      box-sizing: border-box;
+      background: var(--vscode-input-background);
+      color: var(--vscode-input-foreground);
+      border: 1px solid var(--vscode-input-border);
+      border-radius: 4px;
+      padding: 8px;
+      resize: none;
+      font-family: inherit;
+      font-size: 12px;
+    }
+    #promptInput:focus {
+      outline: 1px solid var(--vscode-focusBorder);
+    }
+    .action-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .btn-primary {
+      background: var(--vscode-button-background);
+      color: var(--vscode-button-foreground);
+      border: none;
+      border-radius: 4px;
+      padding: 6px 14px;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 12px;
+    }
+    .btn-primary:hover {
+      background: var(--vscode-button-hoverBackground);
+    }
+    .btn-cancel {
+      background: transparent;
+      color: var(--vscode-errorForeground, #ef4444);
+      border: 1px solid var(--vscode-errorForeground, #ef4444);
+      border-radius: 4px;
+      padding: 4px 8px;
+      cursor: pointer;
+      font-size: 11px;
+      display: none;
+    }
+    pre {
+      background: rgba(0, 0, 0, 0.25);
+      padding: 6px;
+      border-radius: 4px;
+      overflow-x: auto;
+      font-family: var(--vscode-editor-font-family, monospace);
+      font-size: 11.5px;
+    }
   </style>
 </head>
 <body>
-  <div id="header">⚡ SHOORA TETHER AI</div>
-  <div id="messages">
-    <div class="msg ai">Hello! I am your native <b>SHOORA AI Assistant</b>. How can I assist you with your code today?</div>
+  <div id="header">
+    <div class="header-title">
+      <span>⚡</span>
+      <span>SHOORA AI Agent</span>
+    </div>
+    <div class="header-actions">
+      <button class="icon-btn" id="clearBtn" title="Clear Conversation">Clear</button>
+    </div>
   </div>
-  <div id="input-box">
-    <textarea id="promptInput" rows="2" placeholder="Ask SHOORA AI (or use Ctrl+K in editor)..."></textarea>
-    <button id="sendBtn">Send</button>
+
+  <div id="messages">
+    <div class="msg ai">
+      Hello! I am your autonomous <b>SHOORA AI Agent</b>.
+      <br/><br/>
+      I can help you build, test, manage Git/GitHub, and deploy your project. Ask me anything like:
+      <ul>
+        <li><i>"Inspect this project and run the tests."</i></li>
+        <li><i>"Create a new component with error handling."</i></li>
+        <li><i>"Prepare deployment configuration."</i></li>
+      </ul>
+    </div>
+  </div>
+
+  <div id="input-container">
+    <textarea id="promptInput" rows="2" placeholder="Tell Shoora Agent what to build, test, or deploy..."></textarea>
+    <div class="action-row">
+      <button class="btn-cancel" id="cancelBtn">Cancel Task</button>
+      <div style="flex:1;"></div>
+      <button class="btn-primary" id="sendBtn">Send</button>
+    </div>
   </div>
 
   <script>
     const vscode = acquireVsCodeApi();
     const msgContainer = document.getElementById('messages');
     const input = document.getElementById('promptInput');
-    const btn = document.getElementById('sendBtn');
+    const sendBtn = document.getElementById('sendBtn');
+    const cancelBtn = document.getElementById('cancelBtn');
+    const clearBtn = document.getElementById('clearBtn');
+
+    let currentAiMsgEl = null;
 
     function send() {
       const text = input.value.trim();
       if (!text) return;
       appendMessage('user', text);
       input.value = '';
+      cancelBtn.style.display = 'block';
       vscode.postMessage({ type: 'sendMessage', text });
     }
 
-    btn.addEventListener('click', send);
+    sendBtn.addEventListener('click', send);
+    cancelBtn.addEventListener('click', () => {
+      vscode.postMessage({ type: 'cancelTask' });
+      cancelBtn.style.display = 'none';
+    });
+    clearBtn.addEventListener('click', () => {
+      vscode.postMessage({ type: 'clearChat' });
+    });
+
     input.addEventListener('keydown', (e) => {
       if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();
@@ -167,79 +489,112 @@ class ShooraChatViewProvider implements vscode.WebviewViewProvider {
 
     window.addEventListener('message', (event) => {
       const data = event.data;
-      if (data.type === 'aiResponse') {
-        appendMessage('ai', data.text);
+
+      if (data.type === 'agentEvent') {
+        handleAgentEvent(data.event);
+      } else if (data.type === 'approvalRequired') {
+        renderApprovalCard(data.request);
       } else if (data.type === 'aiError') {
-        appendMessage('ai', '⚠️ ' + data.error);
+        cancelBtn.style.display = 'none';
+        appendMessage('ai', '❌ ' + data.error);
+      } else if (data.type === 'chatCleared') {
+        msgContainer.innerHTML = '<div class="msg ai">Conversation reset. Ready for a new task!</div>';
+        cancelBtn.style.display = 'none';
       } else if (data.type === 'autoAsk') {
         appendMessage('user', data.text);
+        cancelBtn.style.display = 'block';
         vscode.postMessage({ type: 'sendMessage', text: data.text });
       }
     });
 
+    function handleAgentEvent(event) {
+      if (!currentAiMsgEl) {
+        currentAiMsgEl = document.createElement('div');
+        currentAiMsgEl.className = 'msg ai';
+        msgContainer.appendChild(currentAiMsgEl);
+      }
+
+      if (event.type === 'step_complete' && event.data.status === 'started') {
+        const stepEl = document.createElement('div');
+        stepEl.className = 'step-badge';
+        stepEl.textContent = 'Step ' + event.data.stepNumber;
+        currentAiMsgEl.appendChild(stepEl);
+      } else if (event.type === 'thought') {
+        const p = document.createElement('div');
+        p.style.marginBottom = '6px';
+        p.innerHTML = escapeHtml(event.data.text).replace(/\\n/g, '<br/>');
+        currentAiMsgEl.appendChild(p);
+      } else if (event.type === 'tool_start') {
+        const card = document.createElement('div');
+        card.id = 'tool_' + event.data.id;
+        card.className = 'tool-card';
+        card.innerHTML = '⚙️ <b>' + event.data.name + '</b><div style="font-size:10.5px; opacity:0.8;">Running...</div>';
+        currentAiMsgEl.appendChild(card);
+      } else if (event.type === 'tool_result') {
+        const card = document.getElementById('tool_' + event.data.id);
+        if (card) {
+          card.className = 'tool-card ' + (event.data.result.success ? 'success' : 'error');
+          const out = event.data.result.output || event.data.result.error || '';
+          card.innerHTML = (event.data.result.success ? '✓' : '✗') + ' <b>' + event.data.name + '</b>' +
+            '<div class="tool-output">' + escapeHtml(out.substring(0, 1000)) + (out.length > 1000 ? '...' : '') + '</div>';
+        }
+      } else if (event.type === 'final_answer') {
+        cancelBtn.style.display = 'none';
+        const finalEl = document.createElement('div');
+        finalEl.style.marginTop = '8px';
+        finalEl.style.fontWeight = '500';
+        finalEl.innerHTML = escapeHtml(event.data.text).replace(/\\n/g, '<br/>');
+        currentAiMsgEl.appendChild(finalEl);
+        currentAiMsgEl = null; // reset for next interaction
+      }
+
+      msgContainer.scrollTop = msgContainer.scrollHeight;
+    }
+
+    function renderApprovalCard(request) {
+      const box = document.createElement('div');
+      box.className = 'approval-box';
+      box.innerHTML = '<div class="approval-title">🔒 Approval Required: ' + escapeHtml(request.toolName) + '</div>' +
+        '<div style="font-size:11.5px;">' + escapeHtml(request.description) + '</div>' +
+        (request.warning ? '<div style="color:#ef4444; font-size:11px; margin-top:4px;">⚠️ ' + escapeHtml(request.warning) + '</div>' : '') +
+        '<pre>' + escapeHtml(JSON.stringify(request.arguments, null, 2)) + '</pre>' +
+        '<div class="approval-actions">' +
+          '<button class="btn-approve" id="approveActionBtn">Approve & Run</button>' +
+          '<button class="btn-reject" id="rejectActionBtn">Reject</button>' +
+        '</div>';
+
+      msgContainer.appendChild(box);
+      msgContainer.scrollTop = msgContainer.scrollHeight;
+
+      box.querySelector('#approveActionBtn').addEventListener('click', () => {
+        box.remove();
+        vscode.postMessage({ type: 'approvalResponse', approved: true });
+      });
+
+      box.querySelector('#rejectActionBtn').addEventListener('click', () => {
+        box.remove();
+        vscode.postMessage({ type: 'approvalResponse', approved: false });
+      });
+    }
+
     function appendMessage(sender, text) {
       const div = document.createElement('div');
       div.className = 'msg ' + sender;
-      div.innerHTML = text.replace(/\\n/g, '<br/>');
+      div.innerHTML = escapeHtml(text).replace(/\\n/g, '<br/>');
       msgContainer.appendChild(div);
       msgContainer.scrollTop = msgContainer.scrollHeight;
+      currentAiMsgEl = null;
+    }
+
+    function escapeHtml(unsafe) {
+      return (unsafe || '').replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
     }
   </script>
 </body>
 </html>`;
     }
-}
-
-async function queryAI(prompt: string, contextCode: string, languageId: string): Promise<string> {
-    const config = vscode.workspace.getConfiguration('shoora');
-    const provider = config.get<string>('provider', 'gemini');
-    const apiKey = config.get<string>('apiKey', '');
-    const model = config.get<string>('model', 'gemini-1.5-flash');
-    const ollamaUrl = config.get<string>('ollamaEndpoint', 'http://localhost:11434');
-
-    const fullPrompt = `${contextCode ? `Context Code (${languageId}):\n\`\`\`${languageId}\n${contextCode}\n\`\`\`\n\n` : ''}User Request: ${prompt}`;
-
-    if (provider === 'ollama') {
-        const res = await fetch(`${ollamaUrl}/api/generate`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ model: 'codellama', prompt: fullPrompt, stream: false })
-        });
-        const data: any = await res.json();
-        return data.response || '';
-    }
-
-    if (provider === 'gemini') {
-        if (!apiKey) {
-            throw new Error('Please set your Google Gemini API Key in Settings (shoora.apiKey).');
-        }
-        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                contents: [{ parts: [{ text: fullPrompt }] }]
-            })
-        });
-        const data: any = await res.json();
-        return data.candidates?.[0]?.content?.parts?.[0]?.text || 'No response generated.';
-    }
-
-    if (provider === 'openai') {
-        if (!apiKey) throw new Error('Please set your OpenAI API Key in Settings (shoora.apiKey).');
-        const res = await fetch('https://api.openai.com/v1/chat/completions', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${apiKey}`
-            },
-            body: JSON.stringify({
-                model: 'gpt-4o-mini',
-                messages: [{ role: 'user', content: fullPrompt }]
-            })
-        });
-        const data: any = await res.json();
-        return data.choices?.[0]?.message?.content || 'No response generated.';
-    }
-
-    return "Provider not supported.";
 }
