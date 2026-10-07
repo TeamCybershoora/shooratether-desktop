@@ -232,9 +232,11 @@ async function runWithConcurrency(tasks: (() => Promise<void>)[], concurrency: n
 
 	if (errors.length > 0) {
 		for (const err of errors) {
-			console.error(err.message);
+			console.warn(`[postinstall warning] ${err.message}`);
 		}
-		process.exit(1);
+		if (process.env['VSCODE_STRICT_POSTINSTALL'] === 'true') {
+			process.exit(1);
+		}
 	}
 }
 

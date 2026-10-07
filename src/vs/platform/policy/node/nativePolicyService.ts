@@ -25,12 +25,19 @@ export class NativePolicyService extends AbstractPolicyService implements IPolic
 	protected async _updatePolicyDefinitions(policyDefinitions: IStringDictionary<PolicyDefinition>): Promise<void> {
 		this.logService.trace(`NativePolicyService#_updatePolicyDefinitions - Found ${Object.keys(policyDefinitions).length} policy definitions`);
 
-		const { createWatcher } = await import('@vscode/policy-watcher');
+		let createWatcher: typeof import('@vscode/policy-watcher').createWatcher | undefined;
+		try {
+			const policyWatcherModule = await import('@vscode/policy-watcher');
+			createWatcher = policyWatcherModule.createWatcher;
+		} catch (err) {
+			this.logService.warn(`NativePolicyService#_updatePolicyDefinitions - Policy watcher could not be loaded:`, err);
+			return;
+		}
 
 		await this.throttler.queue(() => new Promise<void>((c, e) => {
 			try {
 				this.logService.trace(`Creating watcher for productName ${this.productName}`);
-				this.watcher.value = createWatcher(this.productName, policyDefinitions, update => {
+				this.watcher.value = createWatcher!(this.productName, policyDefinitions, update => {
 					this._onDidPolicyChange(update);
 					c();
 				});

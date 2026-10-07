@@ -39,6 +39,11 @@ jobs:
         shell: cmd
         run: npm ci --ignore-scripts
 
+      # Step 1b: Rebuild native C++ addons for Electron on Windows
+      - name: Rebuild native Electron modules
+        shell: cmd
+        run: npm rebuild @vscode/sqlite3 @vscode/windows-registry @vscode/windows-mutex @vscode/windows-process-tree @vscode/spdlog @vscode/policy-watcher native-keymap native-is-elevated node-pty
+
       # Step 2: Install build/ dependencies (needed for gulp)
       - name: Install build tool dependencies
         shell: cmd
