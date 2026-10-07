@@ -67,7 +67,7 @@ import { CopilotHarnessIntroductionButtonVariant, copilotHarnessIntroductionButt
 import { isNewConversation } from '../../browser/widget/input/chatInputModelUtils.js';
 import { AgentsWindowUsage } from '../../common/agentsWindowUsage.js';
 
-const OPEN_WORKSPACE_IN_AGENTS_WINDOW_TITLE = localize2('openWorkspaceInAgentsWindow', "Open in Agents");
+const OPEN_WORKSPACE_IN_AGENTS_WINDOW_TITLE = localize2('openWorkspaceInAgentsWindow', "Shoora Agents");
 const OPEN_WORKSPACE_IN_AGENTS_WINDOW_CHAT_TITLE_COMMAND_ID = 'workbench.action.chat.openWorkspaceInAgentsWindow.chatTitle';
 const OPEN_WORKSPACE_IN_AGENTS_WINDOW_TITLE_BAR_COMMAND_ID = 'workbench.action.chat.openWorkspaceInAgentsWindow.titleBar';
 const COPILOT_HARNESS_INTRODUCTION_IGNORED_STORAGE_KEY = 'chat.agentsParallelWork.copilotHarnessIntroductionIgnored';
@@ -262,8 +262,8 @@ export class ToggleOpenInAgentsWindowTitleBarAction extends ToggleTitleBarConfig
 	constructor() {
 		super(
 			ChatConfiguration.TitleBarOpenInAgentsWindowEnabled,
-			localize('toggle.openInAgentsWindow', 'Open in Agents Window'),
-			localize('toggle.openInAgentsWindowDescription', "Toggle visibility of the Open in Agents Window button in title bar"),
+			localize('toggle.openInAgentsWindow', 'Shoora Agents'),
+			localize('toggle.openInAgentsWindowDescription', "Toggle visibility of the Shoora Agents button in title bar"),
 			6,
 			OPEN_AGENTS_WINDOW_PRECONDITION,
 		);
@@ -292,7 +292,7 @@ export class OpenAgentsWindowAction extends Action2 {
 	constructor() {
 		super({
 			id: OPEN_AGENTS_WINDOW_COMMAND_ID,
-			title: localize2('openAgentsWindow', "Open Agents Window"),
+			title: localize2('openAgentsWindow', "Open Shoora Agents"),
 			category: CHAT_CATEGORY,
 			precondition: OPEN_AGENTS_WINDOW_PRECONDITION,
 			f1: true,
@@ -471,7 +471,7 @@ class OpenWorkspaceInAgentsTitleBarWidget extends BaseActionViewItem {
 			value => typeof value === 'boolean',
 		));
 
-		const hoverText = this.keybindingService.appendKeybinding(localize('openInAgentsHover', "Open in Agents Window"), OPEN_AGENTS_WINDOW_COMMAND_ID);
+		const hoverText = this.keybindingService.appendKeybinding(localize('openInAgentsHover', "Shoora Agents"), OPEN_AGENTS_WINDOW_COMMAND_ID);
 		container.setAttribute('aria-label', hoverText);
 		this.hover = this._register(this.hoverService.setupManagedHover(getDefaultHoverDelegate('element'), container, hoverText));
 
@@ -511,7 +511,7 @@ class OpenWorkspaceInAgentsTitleBarWidget extends BaseActionViewItem {
 		}
 		const treatmentLabel = eligible ? this.treatmentLabel : undefined;
 		this.labelElement.textContent = treatmentLabel ?? this.action.label;
-		const hoverText = this.keybindingService.appendKeybinding(treatmentLabel ?? localize('openInAgentsHover', "Open in Agents Window"), OPEN_AGENTS_WINDOW_COMMAND_ID);
+		const hoverText = this.keybindingService.appendKeybinding(treatmentLabel ?? localize('openInAgentsHover', "Shoora Agents"), OPEN_AGENTS_WINDOW_COMMAND_ID);
 		this.element.setAttribute('aria-label', hoverText);
 		this.hover?.update(hoverText);
 	}
