@@ -12,6 +12,7 @@ import { WORKSPACE_TOOLS } from './tools/WorkspaceTools.js';
 import { TERMINAL_TOOLS } from './tools/TerminalTools.js';
 import { GIT_TOOLS } from './tools/GitTools.js';
 import { GITHUB_TOOLS } from './tools/GitHubTools.js';
+import { CLOUD_TOOLS } from './tools/CloudTools.js';
 
 export type AgentEventListener = (event: AgentEvent) => void;
 
@@ -34,6 +35,7 @@ export class AgentOrchestrator {
         this.toolRegistry.registerTools(TERMINAL_TOOLS);
         this.toolRegistry.registerTools(GIT_TOOLS);
         this.toolRegistry.registerTools(GITHUB_TOOLS);
+        this.toolRegistry.registerTools(CLOUD_TOOLS);
     }
 
     public getRegistry(): ToolRegistry {
