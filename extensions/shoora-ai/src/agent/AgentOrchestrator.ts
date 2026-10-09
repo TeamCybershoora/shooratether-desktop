@@ -10,6 +10,8 @@ import { SecurityGuard } from './SecurityGuard.js';
 import { LLMClient } from './LLMClient.js';
 import { WORKSPACE_TOOLS } from './tools/WorkspaceTools.js';
 import { TERMINAL_TOOLS } from './tools/TerminalTools.js';
+import { GIT_TOOLS } from './tools/GitTools.js';
+import { GITHUB_TOOLS } from './tools/GitHubTools.js';
 
 export type AgentEventListener = (event: AgentEvent) => void;
 
@@ -27,9 +29,11 @@ export class AgentOrchestrator {
         this.securityGuard = new SecurityGuard();
         this.llmClient = new LLMClient();
 
-        // Register default tools
+        // Register tools
         this.toolRegistry.registerTools(WORKSPACE_TOOLS);
         this.toolRegistry.registerTools(TERMINAL_TOOLS);
+        this.toolRegistry.registerTools(GIT_TOOLS);
+        this.toolRegistry.registerTools(GITHUB_TOOLS);
     }
 
     public getRegistry(): ToolRegistry {

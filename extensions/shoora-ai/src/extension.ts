@@ -6,6 +6,7 @@
 import * as vscode from 'vscode';
 import { AgentOrchestrator } from './agent/AgentOrchestrator.js';
 import { ApprovalRequest } from './agent/types.js';
+import { GitHubViewProvider } from './views/GitHubViewProvider.js';
 
 let globalOrchestrator: AgentOrchestrator | undefined;
 
@@ -14,9 +15,26 @@ export function activate(context: vscode.ExtensionContext) {
     globalOrchestrator = orchestrator;
 
     const chatProvider = new ShooraChatViewProvider(context.extensionUri, orchestrator);
+    const githubProvider = new GitHubViewProvider(context.extensionUri);
+
     context.subscriptions.push(
-        vscode.window.registerWebviewViewProvider(ShooraChatViewProvider.viewType, chatProvider)
+        vscode.window.registerWebviewViewProvider(ShooraChatViewProvider.viewType, chatProvider),
+        vscode.window.registerWebviewViewProvider(GitHubViewProvider.viewType, githubProvider)
     );
+
+    const ghCreateRepoCmd = vscode.commands.registerCommand('shoora.github.createRepo', async () => {
+        vscode.commands.executeCommand('shoora.githubView.focus');
+    });
+
+    const ghCreatePRCmd = vscode.commands.registerCommand('shoora.github.createPR', async () => {
+        vscode.commands.executeCommand('shoora.githubView.focus');
+    });
+
+    const ghRefreshCmd = vscode.commands.registerCommand('shoora.github.refresh', async () => {
+        await githubProvider.refreshData();
+    });
+
+    context.subscriptions.push(ghCreateRepoCmd, ghCreatePRCmd, ghRefreshCmd);
 
     // Ctrl+K Inline Edit Command
     const inlineEditCmd = vscode.commands.registerCommand('shoora.inlineEdit', async () => {

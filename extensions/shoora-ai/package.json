@@ -41,11 +41,31 @@
         {
           "type": "webview",
           "id": "shoora.chatView",
-          "name": "Chat with Shoora"
+          "name": "🤖 AI Agent"
+        },
+        {
+          "type": "webview",
+          "id": "shoora.githubView",
+          "name": "🐙 GitHub Control"
         }
       ]
     },
     "commands": [
+      {
+        "command": "shoora.github.createRepo",
+        "title": "SHOORA: Create GitHub Repository & Push",
+        "category": "SHOORA GitHub"
+      },
+      {
+        "command": "shoora.github.createPR",
+        "title": "SHOORA: Create Pull Request",
+        "category": "SHOORA GitHub"
+      },
+      {
+        "command": "shoora.github.refresh",
+        "title": "SHOORA: Refresh GitHub Status",
+        "category": "SHOORA GitHub"
+      },
       {
         "command": "shoora.openChat",
         "title": "SHOORA: Open AI Chat",
