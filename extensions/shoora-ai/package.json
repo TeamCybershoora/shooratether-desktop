@@ -40,6 +40,11 @@
       "shoora-ai-sidebar": [
         {
           "type": "webview",
+          "id": "shoora.projectStatusView",
+          "name": "📊 Project Status"
+        },
+        {
+          "type": "webview",
           "id": "shoora.chatView",
           "name": "🤖 AI Agent"
         },
@@ -47,10 +52,35 @@
           "type": "webview",
           "id": "shoora.githubView",
           "name": "🐙 GitHub Control"
+        },
+        {
+          "type": "webview",
+          "id": "shoora.cloudView",
+          "name": "☁️ Cloud & Deployments"
         }
       ]
     },
     "commands": [
+      {
+        "command": "shoora.cloud.deploy",
+        "title": "SHOORA: Deploy to Cloud (AWS)",
+        "category": "SHOORA Cloud"
+      },
+      {
+        "command": "shoora.cloud.rollback",
+        "title": "SHOORA: Rollback Cloud Deployment",
+        "category": "SHOORA Cloud"
+      },
+      {
+        "command": "shoora.cloud.refresh",
+        "title": "SHOORA: Refresh Cloud Status",
+        "category": "SHOORA Cloud"
+      },
+      {
+        "command": "shoora.project.refresh",
+        "title": "SHOORA: Refresh Project Status",
+        "category": "SHOORA Project"
+      },
       {
         "command": "shoora.github.createRepo",
         "title": "SHOORA: Create GitHub Repository & Push",

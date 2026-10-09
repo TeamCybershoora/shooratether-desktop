@@ -7,6 +7,8 @@ import * as vscode from 'vscode';
 import { AgentOrchestrator } from './agent/AgentOrchestrator.js';
 import { ApprovalRequest } from './agent/types.js';
 import { GitHubViewProvider } from './views/GitHubViewProvider.js';
+import { CloudViewProvider } from './views/CloudViewProvider.js';
+import { ProjectStatusProvider } from './views/ProjectStatusProvider.js';
 
 let globalOrchestrator: AgentOrchestrator | undefined;
 
@@ -16,10 +18,14 @@ export function activate(context: vscode.ExtensionContext) {
 
     const chatProvider = new ShooraChatViewProvider(context.extensionUri, orchestrator);
     const githubProvider = new GitHubViewProvider(context.extensionUri);
+    const cloudProvider = new CloudViewProvider(context.extensionUri);
+    const projectStatusProvider = new ProjectStatusProvider(context.extensionUri);
 
     context.subscriptions.push(
         vscode.window.registerWebviewViewProvider(ShooraChatViewProvider.viewType, chatProvider),
-        vscode.window.registerWebviewViewProvider(GitHubViewProvider.viewType, githubProvider)
+        vscode.window.registerWebviewViewProvider(GitHubViewProvider.viewType, githubProvider),
+        vscode.window.registerWebviewViewProvider(CloudViewProvider.viewType, cloudProvider),
+        vscode.window.registerWebviewViewProvider(ProjectStatusProvider.viewType, projectStatusProvider)
     );
 
     const ghCreateRepoCmd = vscode.commands.registerCommand('shoora.github.createRepo', async () => {
@@ -34,7 +40,31 @@ export function activate(context: vscode.ExtensionContext) {
         await githubProvider.refreshData();
     });
 
-    context.subscriptions.push(ghCreateRepoCmd, ghCreatePRCmd, ghRefreshCmd);
+    const cloudDeployCmd = vscode.commands.registerCommand('shoora.cloud.deploy', async () => {
+        vscode.commands.executeCommand('shoora.cloudView.focus');
+    });
+
+    const cloudRollbackCmd = vscode.commands.registerCommand('shoora.cloud.rollback', async () => {
+        vscode.commands.executeCommand('shoora.cloudView.focus');
+    });
+
+    const cloudRefreshCmd = vscode.commands.registerCommand('shoora.cloud.refresh', async () => {
+        await cloudProvider.refreshData();
+    });
+
+    const projectRefreshCmd = vscode.commands.registerCommand('shoora.project.refresh', async () => {
+        await projectStatusProvider.refreshData();
+    });
+
+    context.subscriptions.push(
+        ghCreateRepoCmd,
+        ghCreatePRCmd,
+        ghRefreshCmd,
+        cloudDeployCmd,
+        cloudRollbackCmd,
+        cloudRefreshCmd,
+        projectRefreshCmd
+    );
 
     // Ctrl+K Inline Edit Command
     const inlineEditCmd = vscode.commands.registerCommand('shoora.inlineEdit', async () => {
