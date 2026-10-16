@@ -73,6 +73,21 @@ jobs:
         shell: cmd
         run: npm run compile-client
 
+      # Step 5b: Compile SHOORA AI built-in extension
+      - name: Build SHOORA AI Extension
+        shell: pwsh
+        run: |
+          Push-Location extensions/shoora-ai
+          npm ci --ignore-scripts --no-audit
+          npm run compile
+          Pop-Location
+          # Stage into .build/extensions/shoora-ai so it is packaged into the distribution
+          New-Item -ItemType Directory -Force -Path ".build\extensions\shoora-ai" | Out-Null
+          Copy-Item -Path "extensions\shoora-ai\dist" -Destination ".build\extensions\shoora-ai\dist" -Recurse -Force
+          Copy-Item -Path "extensions\shoora-ai\resources" -Destination ".build\extensions\shoora-ai\resources" -Recurse -Force
+          Copy-Item -Path "extensions\shoora-ai\package.json" -Destination ".build\extensions\shoora-ai\package.json" -Force
+          Write-Host "✅ SHOORA AI built-in extension staged successfully into .build\extensions\shoora-ai"
+
       # Step 6: Package Windows x64 binaries
       - name: Package Windows client
         shell: cmd

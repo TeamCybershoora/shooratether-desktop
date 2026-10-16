@@ -8,5 +8,6 @@
     "rootDir": "src",
     "strict": false
   },
-  "exclude": ["node_modules", ".vscode-test"]
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", ".vscode-test", "esbuild.mts"]
 }
