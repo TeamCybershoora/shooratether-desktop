@@ -40,23 +40,32 @@
       "shoora-ai-sidebar": [
         {
           "type": "webview",
-          "id": "shoora.projectStatusView",
-          "name": "📊 Project Status"
+          "id": "shoora.unifiedHubView",
+          "name": "⚡ SHOORA AI HUB"
         },
         {
           "type": "webview",
           "id": "shoora.chatView",
-          "name": "🤖 AI Agent"
+          "name": "🤖 AI Agent Chat",
+          "visibility": "collapsed"
         },
         {
           "type": "webview",
-          "id": "shoora.githubView",
-          "name": "🐙 GitHub Control"
+          "id": "shoora.projectStatusView",
+          "name": "📊 Project Status",
+          "visibility": "collapsed"
         },
         {
           "type": "webview",
           "id": "shoora.cloudView",
-          "name": "☁️ Cloud & Deployments"
+          "name": "☁️ Cloud & Deployments",
+          "visibility": "collapsed"
+        },
+        {
+          "type": "webview",
+          "id": "shoora.githubView",
+          "name": "🐙 GitHub Control",
+          "visibility": "collapsed"
         }
       ]
     },

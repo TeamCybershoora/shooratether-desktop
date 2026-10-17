@@ -9,12 +9,17 @@ import { ApprovalRequest } from './agent/types.js';
 import { GitHubViewProvider } from './views/GitHubViewProvider.js';
 import { CloudViewProvider } from './views/CloudViewProvider.js';
 import { ProjectStatusProvider } from './views/ProjectStatusProvider.js';
+import { ShooraUnifiedHubViewProvider } from './views/UnifiedHubViewProvider.js';
 
 let globalOrchestrator: AgentOrchestrator | undefined;
+let globalHubProvider: ShooraUnifiedHubViewProvider | undefined;
 
 export function activate(context: vscode.ExtensionContext) {
     const orchestrator = new AgentOrchestrator();
     globalOrchestrator = orchestrator;
+
+    const hubProvider = new ShooraUnifiedHubViewProvider(context.extensionUri, orchestrator);
+    globalHubProvider = hubProvider;
 
     const chatProvider = new ShooraChatViewProvider(context.extensionUri, orchestrator);
     const githubProvider = new GitHubViewProvider(context.extensionUri);
@@ -22,6 +27,7 @@ export function activate(context: vscode.ExtensionContext) {
     const projectStatusProvider = new ProjectStatusProvider(context.extensionUri);
 
     context.subscriptions.push(
+        vscode.window.registerWebviewViewProvider(ShooraUnifiedHubViewProvider.viewType, hubProvider),
         vscode.window.registerWebviewViewProvider(ShooraChatViewProvider.viewType, chatProvider),
         vscode.window.registerWebviewViewProvider(GitHubViewProvider.viewType, githubProvider),
         vscode.window.registerWebviewViewProvider(CloudViewProvider.viewType, cloudProvider),
