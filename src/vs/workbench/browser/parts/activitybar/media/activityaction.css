@@ -230,26 +230,65 @@
 }
 
 /* -------------------------------------------------------------------------
- * SHOORA TETHER: Animated Activity Bar Icons
- * Smooth hover animations, glowing pulse, and active bounce effects for
- * Explorer, Search, Source Control, Run/Debug, Extensions, and Shoora AI.
+ * SHOORA TETHER: Modern Cyber Activity Bar Icons
+ * Futuristic glass pods, neon floating indicators, and individual icon glows
+ * for Explorer, Search, Source Control, Run/Debug, Extensions, and Shoora AI.
  * ------------------------------------------------------------------------- */
 
 .monaco-workbench .activitybar > .content :not(.monaco-menu) > .monaco-action-bar .action-item {
-	transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
+	margin: 3px 5px;
+	border-radius: 10px;
+	background: transparent;
+	transition: background 0.2s ease, transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s ease;
+}
+
+.monaco-workbench .activitybar > .content :not(.monaco-menu) > .monaco-action-bar .action-item:hover {
+	background: rgba(255, 255, 255, 0.07);
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+}
+
+.monaco-workbench .activitybar > .content :not(.monaco-menu) > .monaco-action-bar .action-item.checked {
+	background: linear-gradient(135deg, rgba(0, 229, 255, 0.12) 0%, rgba(59, 130, 246, 0.08) 100%);
+	box-shadow: inset 0 0 0 1px rgba(0, 229, 255, 0.28), 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.monaco-workbench .activitybar.left > .content :not(.monaco-menu) > .monaco-action-bar .action-item.checked .active-item-indicator:before {
+	content: "";
+	position: absolute;
+	left: -5px;
+	top: 10px;
+	height: calc(100% - 20px);
+	width: 3.5px;
+	border-left: none;
+	border-radius: 4px;
+	background: linear-gradient(180deg, #00E5FF 0%, #3B82F6 100%);
+	box-shadow: 0 0 10px #00E5FF, 0 0 18px rgba(0, 229, 255, 0.6);
+	animation: shooraActiveIndicatorPulse 2.8s ease-in-out infinite;
+}
+
+@keyframes shooraActiveIndicatorPulse {
+	0%, 100% {
+		box-shadow: 0 0 8px #00E5FF, 0 0 14px rgba(0, 229, 255, 0.4);
+		opacity: 0.9;
+	}
+	50% {
+		box-shadow: 0 0 14px #00E5FF, 0 0 24px rgba(0, 229, 255, 0.85);
+		opacity: 1;
+	}
 }
 
 .monaco-workbench .activitybar > .content :not(.monaco-menu) > .monaco-action-bar .action-label {
 	transition: transform 0.26s cubic-bezier(0.34, 1.56, 0.64, 1),
 	            filter 0.26s ease,
-	            opacity 0.2s ease;
+	            opacity 0.2s ease,
+	            color 0.2s ease;
 	transform-origin: center center;
 }
 
 /* Hover: Lift + subtle scale + glowing icon effect */
 .monaco-workbench .activitybar > .content :not(.monaco-menu) > .monaco-action-bar .action-item:hover .action-label {
 	transform: scale(1.16) translateY(-1px);
-	filter: drop-shadow(0 2px 6px rgba(0, 122, 255, 0.45));
+	filter: drop-shadow(0 2px 8px rgba(0, 200, 255, 0.55));
 }
 
 /* Click / Active: tactile press bounce */
@@ -260,63 +299,99 @@
 
 /* Checked / Selected Item: Soft pulsing glow indicator */
 .monaco-workbench .activitybar > .content :not(.monaco-menu) > .monaco-action-bar .action-item.checked .action-label {
-	filter: drop-shadow(0 0 8px rgba(0, 212, 255, 0.65));
+	filter: drop-shadow(0 0 8px rgba(0, 229, 255, 0.75));
 	animation: shooraIconPulse 3.5s ease-in-out infinite;
 }
 
-/* Distinctive hover animations per activity bar icon */
-/* Explorer / Files: Subtle tilt */
+/* Distinctive cyber color accents and animations per activity bar icon */
+
+/* 1. Explorer / Files: Cyan-Blue */
+.monaco-workbench .activitybar > .content :not(.monaco-menu) > .monaco-action-bar .action-label.codicon-explorer-view-icon,
+.monaco-workbench .activitybar > .content :not(.monaco-menu) > .monaco-action-bar .action-label.codicon-files {
+	color: #38bdf8;
+}
 .monaco-workbench .activitybar > .content :not(.monaco-menu) > .monaco-action-bar .action-item:hover .action-label.codicon-explorer-view-icon,
 .monaco-workbench .activitybar > .content :not(.monaco-menu) > .monaco-action-bar .action-item:hover .action-label.codicon-files {
 	transform: scale(1.18) rotate(-4deg);
-	filter: drop-shadow(0 2px 8px rgba(52, 152, 219, 0.5));
+	color: #7dd3fc !important;
+	filter: drop-shadow(0 2px 10px rgba(56, 189, 248, 0.65));
 }
 
-/* Search: Zoom + tilt */
+/* 2. Search: Radar Amber */
+.monaco-workbench .activitybar > .content :not(.monaco-menu) > .monaco-action-bar .action-label.codicon-search-view-icon,
+.monaco-workbench .activitybar > .content :not(.monaco-menu) > .monaco-action-bar .action-label.codicon-search {
+	color: #fbbf24;
+}
 .monaco-workbench .activitybar > .content :not(.monaco-menu) > .monaco-action-bar .action-item:hover .action-label.codicon-search-view-icon,
 .monaco-workbench .activitybar > .content :not(.monaco-menu) > .monaco-action-bar .action-item:hover .action-label.codicon-search {
 	transform: scale(1.2) rotate(6deg);
-	filter: drop-shadow(0 2px 8px rgba(241, 196, 15, 0.5));
+	color: #fde047 !important;
+	filter: drop-shadow(0 2px 10px rgba(251, 191, 36, 0.65));
 }
 
-/* Source Control (Git): Gentle wave */
+/* 3. Source Control (Git): Emerald Green */
+.monaco-workbench .activitybar > .content :not(.monaco-menu) > .monaco-action-bar .action-label.codicon-source-control-view-icon,
+.monaco-workbench .activitybar > .content :not(.monaco-menu) > .monaco-action-bar .action-label.codicon-source-control {
+	color: #34d399;
+}
 .monaco-workbench .activitybar > .content :not(.monaco-menu) > .monaco-action-bar .action-item:hover .action-label.codicon-source-control-view-icon,
 .monaco-workbench .activitybar > .content :not(.monaco-menu) > .monaco-action-bar .action-item:hover .action-label.codicon-source-control {
 	transform: scale(1.18) translateY(-2px);
-	filter: drop-shadow(0 2px 8px rgba(46, 204, 113, 0.5));
+	color: #6ee7b7 !important;
+	filter: drop-shadow(0 2px 10px rgba(52, 211, 153, 0.65));
 }
 
-/* Run & Debug: Energy pulse */
+/* 4. Run & Debug: Coral Red */
+.monaco-workbench .activitybar > .content :not(.monaco-menu) > .monaco-action-bar .action-label.codicon-run-view-icon,
+.monaco-workbench .activitybar > .content :not(.monaco-menu) > .monaco-action-bar .action-label.codicon-debug-alt {
+	color: #f87171;
+}
 .monaco-workbench .activitybar > .content :not(.monaco-menu) > .monaco-action-bar .action-item:hover .action-label.codicon-run-view-icon,
 .monaco-workbench .activitybar > .content :not(.monaco-menu) > .monaco-action-bar .action-item:hover .action-label.codicon-debug-alt {
 	transform: scale(1.2) rotate(-8deg);
-	filter: drop-shadow(0 2px 8px rgba(231, 76, 60, 0.55));
+	color: #fca5a5 !important;
+	filter: drop-shadow(0 2px 10px rgba(248, 113, 113, 0.65));
 }
 
-/* Extensions: Dynamic spin peek */
+/* 5. Extensions: Electric Purple */
+.monaco-workbench .activitybar > .content :not(.monaco-menu) > .monaco-action-bar .action-label.codicon-extensions-view-icon,
+.monaco-workbench .activitybar > .content :not(.monaco-menu) > .monaco-action-bar .action-label.codicon-extensions {
+	color: #c084fc;
+}
 .monaco-workbench .activitybar > .content :not(.monaco-menu) > .monaco-action-bar .action-item:hover .action-label.codicon-extensions-view-icon,
 .monaco-workbench .activitybar > .content :not(.monaco-menu) > .monaco-action-bar .action-item:hover .action-label.codicon-extensions {
 	transform: scale(1.18) rotate(8deg);
-	filter: drop-shadow(0 2px 8px rgba(155, 89, 182, 0.55));
+	color: #d8b4fe !important;
+	filter: drop-shadow(0 2px 10px rgba(192, 132, 252, 0.65));
 }
 
-/* SHOORA AI Icon: Glowing lightning aura pulse */
+/* 6. SHOORA AI Icon: Cyber Pulse Crest */
 .monaco-workbench .activitybar > .content :not(.monaco-menu) > .monaco-action-bar .action-label.uri-icon {
 	transition: transform 0.28s cubic-bezier(0.34, 1.56, 0.64, 1),
 	            filter 0.28s ease;
+	animation: shooraAiPulse 4s ease-in-out infinite;
 }
 
 .monaco-workbench .activitybar > .content :not(.monaco-menu) > .monaco-action-bar .action-item:hover .action-label.uri-icon {
-	transform: scale(1.22) translateY(-2px);
-	filter: drop-shadow(0 0 10px rgba(0, 229, 255, 0.85)) drop-shadow(0 0 16px rgba(0, 140, 255, 0.45));
+	transform: scale(1.24) translateY(-2px);
+	filter: drop-shadow(0 0 12px rgba(0, 229, 255, 0.9)) drop-shadow(0 0 22px rgba(139, 92, 246, 0.6));
+}
+
+@keyframes shooraAiPulse {
+	0%, 100% {
+		filter: drop-shadow(0 0 4px rgba(0, 229, 255, 0.45));
+	}
+	50% {
+		filter: drop-shadow(0 0 12px rgba(0, 229, 255, 0.8)) drop-shadow(0 0 18px rgba(139, 92, 246, 0.5));
+	}
 }
 
 @keyframes shooraIconPulse {
 	0%, 100% {
-		filter: drop-shadow(0 0 6px rgba(0, 180, 255, 0.4));
+		filter: drop-shadow(0 0 6px rgba(0, 180, 255, 0.45));
 	}
 	50% {
-		filter: drop-shadow(0 0 14px rgba(0, 220, 255, 0.85));
+		filter: drop-shadow(0 0 14px rgba(0, 229, 255, 0.85));
 	}
 }
 

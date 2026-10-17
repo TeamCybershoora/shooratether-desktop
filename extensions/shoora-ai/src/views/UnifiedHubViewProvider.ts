@@ -402,7 +402,29 @@ export class ShooraUnifiedHubViewProvider implements vscode.WebviewViewProvider 
         }
     }
 
+    private static readonly ICONS = {
+        bolt: `<svg class="svg-icon svg-accent svg-pulse" viewBox="0 0 24 24" fill="none"><defs><linearGradient id="shGradBolt" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#00E5FF"/><stop offset="100%" stop-color="#8B5CF6"/></linearGradient></defs><path d="M13 2L3 14H12L11 22L21 10H12L13 2Z" fill="url(#shGradBolt)" stroke="#00E5FF" stroke-width="1.2" stroke-linejoin="round"/></svg>`,
+        agent: `<svg class="svg-icon svg-agent" viewBox="0 0 24 24" fill="none"><defs><linearGradient id="shGradAgent" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#00E5FF"/><stop offset="100%" stop-color="#3B82F6"/></linearGradient></defs><rect x="3" y="10" width="18" height="11" rx="4" fill="rgba(0, 229, 255, 0.12)" stroke="url(#shGradAgent)" stroke-width="1.5"/><circle cx="12" cy="4" r="2" fill="#00E5FF" class="anim-glow"/><line x1="12" y1="6" x2="12" y2="10" stroke="#00E5FF" stroke-width="1.5"/><circle cx="8" cy="15.5" r="1.5" fill="#00E5FF" class="anim-blink"/><circle cx="16" cy="15.5" r="1.5" fill="#00E5FF" class="anim-blink"/><path d="M10 18.5H14" stroke="#00E5FF" stroke-width="1.2" stroke-linecap="round"/></svg>`,
+        status: `<svg class="svg-icon svg-status" viewBox="0 0 24 24" fill="none"><defs><linearGradient id="shGradStatus" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#3B82F6"/><stop offset="50%" stop-color="#00E5FF"/><stop offset="100%" stop-color="#10B981"/></linearGradient></defs><rect x="2" y="3" width="20" height="18" rx="4" stroke="rgba(255,255,255,0.2)" stroke-width="1.2" fill="rgba(0,0,0,0.2)"/><path d="M4 12H7L9 7L13 17L15 10L17 12H20" stroke="url(#shGradStatus)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="anim-ecg"/></svg>`,
+        cloud: `<svg class="svg-icon svg-cloud" viewBox="0 0 24 24" fill="none"><defs><linearGradient id="shGradCloud" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#38BDF8"/><stop offset="100%" stop-color="#818CF8"/></linearGradient></defs><path class="anim-float" d="M19 12H18.2C17.7 8.6 14.8 6 11.3 6C8.5 6 6 7.8 5.2 10.4C3.4 10.9 2 12.5 2 14.5C2 17 4 19 6.5 19H19C21.2 19 23 17.2 23 15C23 12.8 21.2 12 19 12Z" fill="rgba(56,189,248,0.12)" stroke="url(#shGradCloud)" stroke-width="1.5" stroke-linejoin="round"/><polyline class="anim-upload-arrow" points="12 15 12 11 10 13" stroke="#00E5FF" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+        github: `<svg class="svg-icon svg-github" viewBox="0 0 24 24" fill="none"><line x1="6" y1="5" x2="6" y2="19" stroke="rgba(255,255,255,0.4)" stroke-width="1.8"/><path d="M6 12C12 12 18 10 18 7" stroke="rgba(255,255,255,0.4)" stroke-width="1.8"/><circle cx="6" cy="5" r="2.5" fill="#38BDF8" stroke="#00E5FF" stroke-width="1.2" class="anim-node-1"/><circle cx="6" cy="19" r="2.5" fill="#10B981" stroke="#34D399" stroke-width="1.2"/><circle cx="18" cy="7" r="2.5" fill="#A855F7" stroke="#C084FC" stroke-width="1.2" class="anim-node-2"/></svg>`,
+        folder: `<svg class="svg-icon" viewBox="0 0 24 24" fill="none"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" fill="rgba(56,189,248,0.15)" stroke="#38BDF8" stroke-width="1.6"/><line x1="8" y1="13" x2="14" y2="13" stroke="#00E5FF" stroke-width="1.4" stroke-linecap="round"/></svg>`,
+        refresh: `<svg class="svg-icon anim-spin-hover" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>`,
+        rocket: `<svg class="svg-icon svg-rocket" viewBox="0 0 24 24" fill="none"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z" fill="rgba(245,158,11,0.25)" stroke="#F59E0B" stroke-width="1.5"/><path d="M12 15l-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-2.95 11a22.35 22.35 0 0 1-4.05 2l-3-3z" stroke="#F59E0B" stroke-width="1.6" stroke-linejoin="round"/><circle cx="15.5" cy="8.5" r="1.5" fill="#F59E0B"/><path class="anim-flame" d="M8.5 18.5L5 22" stroke="#EF4444" stroke-width="2.5" stroke-linecap="round"/></svg>`,
+        rollback: `<svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 19 2 12 11 5 11 19" fill="rgba(255,255,255,0.15)"/><polygon points="22 19 13 12 22 5 22 19" fill="rgba(255,255,255,0.15)"/></svg>`,
+        logs: `<svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="18" rx="3" stroke="rgba(255,255,255,0.3)" fill="rgba(0,0,0,0.2)"/><polyline points="5 9 8 12 5 15" stroke="#00E5FF"/><line x1="11" y1="15" x2="17" y2="15" stroke="#10B981" stroke-width="2" class="anim-cursor"/></svg>`,
+        plus: `<svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9" stroke="rgba(16,185,129,0.35)" fill="rgba(16,185,129,0.1)"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>`,
+        push: `<svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="#38BDF8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline class="anim-push-arrow" points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="16"/><path d="M5 21H19"/></svg>`,
+        pr: `<svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="#A855F7" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="18" r="3" fill="rgba(168,85,247,0.2)"/><circle cx="6" cy="6" r="3" fill="rgba(56,189,248,0.2)" stroke="#38BDF8"/><path d="M13 6H16A2 2 0 0 1 18 8V15"/><line x1="6" y1="9" x2="6" y2="21" stroke="#38BDF8"/></svg>`,
+        link: `<svg class="svg-icon svg-icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>`,
+        send: `<svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2" fill="rgba(255,255,255,0.2)"/></svg>`,
+        sparkle: `<svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="#00E5FF" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l2.4 7.2L22 12l-7.6 2.8L12 22l-2.4-7.2L2 12l7.6-2.8z" fill="rgba(0,229,255,0.25)" class="anim-sparkle"/></svg>`,
+        gear: `<svg class="svg-icon spin-icon" viewBox="0 0 24 24" fill="none" stroke="#00E5FF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>`,
+        error: `<svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="#EF4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10" fill="rgba(239,68,68,0.2)"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>`
+    };
+
     private _getHtmlForWebview(): string {
+        const ICONS = ShooraUnifiedHubViewProvider.ICONS;
         return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -780,6 +802,140 @@ export class ShooraUnifiedHubViewProvider implements vscode.WebviewViewProvider 
       gap: 4px;
     }
     .url-link:hover { text-decoration: underline; }
+
+    /* Animated SVG Icons */
+    .svg-icon {
+      width: 15px;
+      height: 15px;
+      display: inline-block;
+      vertical-align: middle;
+      flex-shrink: 0;
+      transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), filter 0.2s ease;
+    }
+    .svg-icon-lg {
+      width: 18px;
+      height: 18px;
+    }
+    .svg-icon-sm {
+      width: 13px;
+      height: 13px;
+    }
+
+    /* Icon Micro Animations */
+    .svg-pulse {
+      animation: svgPulseAnim 2.8s ease-in-out infinite;
+    }
+    @keyframes svgPulseAnim {
+      0%, 100% { filter: drop-shadow(0 0 2px rgba(0,229,255,0.4)); transform: scale(1); }
+      50% { filter: drop-shadow(0 0 8px rgba(0,229,255,0.85)); transform: scale(1.06); }
+    }
+
+    .anim-blink {
+      animation: svgBlinkAnim 3.8s infinite;
+    }
+    @keyframes svgBlinkAnim {
+      0%, 90%, 100% { opacity: 1; transform: scaleY(1); }
+      95% { opacity: 0.15; transform: scaleY(0.15); }
+    }
+
+    .anim-glow {
+      animation: svgGlowAnim 2.2s ease-in-out infinite;
+    }
+    @keyframes svgGlowAnim {
+      0%, 100% { filter: drop-shadow(0 0 1px #00E5FF); }
+      50% { filter: drop-shadow(0 0 6px #00E5FF); }
+    }
+
+    .anim-ecg {
+      stroke-dasharray: 26;
+      stroke-dashoffset: 26;
+      animation: svgEcgAnim 2.4s ease-in-out infinite;
+    }
+    @keyframes svgEcgAnim {
+      0% { stroke-dashoffset: 26; }
+      50% { stroke-dashoffset: 0; }
+      100% { stroke-dashoffset: -26; }
+    }
+
+    .anim-float {
+      animation: svgFloatAnim 3s ease-in-out infinite;
+    }
+    @keyframes svgFloatAnim {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-1.5px); }
+    }
+
+    .anim-upload-arrow {
+      animation: svgArrowAnim 1.8s ease-in-out infinite;
+    }
+    @keyframes svgArrowAnim {
+      0%, 100% { transform: translateY(0); opacity: 0.6; }
+      50% { transform: translateY(-2px); opacity: 1; }
+    }
+
+    .anim-node-1 {
+      animation: svgNodePulse1 2.2s ease-in-out infinite;
+    }
+    .anim-node-2 {
+      animation: svgNodePulse2 2.2s ease-in-out infinite;
+    }
+    @keyframes svgNodePulse1 {
+      0%, 100% { r: 2.2; filter: drop-shadow(0 0 1px #00E5FF); }
+      50% { r: 3.2; filter: drop-shadow(0 0 5px #00E5FF); }
+    }
+    @keyframes svgNodePulse2 {
+      0%, 100% { r: 3.2; filter: drop-shadow(0 0 5px #A855F7); }
+      50% { r: 2.2; filter: drop-shadow(0 0 1px #A855F7); }
+    }
+
+    .anim-flame {
+      animation: svgFlameAnim 0.7s ease-in-out infinite alternate;
+    }
+    @keyframes svgFlameAnim {
+      from { opacity: 0.4; stroke-width: 1.5; }
+      to { opacity: 1; stroke-width: 3; filter: drop-shadow(0 0 4px #EF4444); }
+    }
+
+    .anim-cursor {
+      animation: svgCursorAnim 0.9s steps(2, start) infinite;
+    }
+    @keyframes svgCursorAnim {
+      to { visibility: hidden; }
+    }
+
+    .anim-push-arrow {
+      animation: svgPushAnim 1.6s ease-in-out infinite;
+    }
+    @keyframes svgPushAnim {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-2px); }
+    }
+
+    .anim-sparkle {
+      animation: svgSparkleAnim 2s ease-in-out infinite;
+    }
+    @keyframes svgSparkleAnim {
+      0%, 100% { opacity: 0.5; transform: scale(0.95); }
+      50% { opacity: 1; transform: scale(1.08); filter: drop-shadow(0 0 4px #00E5FF); }
+    }
+
+    .spin-icon {
+      animation: svgSpinAnim 2.5s linear infinite;
+    }
+    @keyframes svgSpinAnim {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
+    .tab-btn:hover .svg-icon,
+    .btn:hover .svg-icon {
+      transform: scale(1.15);
+      filter: drop-shadow(0 0 5px currentColor);
+    }
+
+    .anim-spin-hover:hover .svg-icon {
+      animation: svgSpinAnim 0.75s cubic-bezier(0.4, 0, 0.2, 1);
+    }
   </style>
 </head>
 <body>
@@ -787,18 +943,18 @@ export class ShooraUnifiedHubViewProvider implements vscode.WebviewViewProvider 
   <div class="top-header">
     <div class="brand-row">
       <div class="brand-title">
-        <span>⚡</span>
+        ${ICONS.bolt}
         <span>SHOORA AI CONTROL</span>
       </div>
       <div class="brand-badge">Autonomous</div>
     </div>
 
-    <!-- Capsule Tabs -->
+    <!-- Capsule Tabs with Animated SVG Icons -->
     <div class="tab-bar">
-      <button class="tab-btn active" data-tab="tab-agent">🤖 Agent</button>
-      <button class="tab-btn" data-tab="tab-status">📊 Status</button>
-      <button class="tab-btn" data-tab="tab-cloud">☁️ Cloud</button>
-      <button class="tab-btn" data-tab="tab-github">🐙 GitHub</button>
+      <button class="tab-btn active" data-tab="tab-agent">${ICONS.agent}<span>Agent</span></button>
+      <button class="tab-btn" data-tab="tab-status">${ICONS.status}<span>Status</span></button>
+      <button class="tab-btn" data-tab="tab-cloud">${ICONS.cloud}<span>Cloud</span></button>
+      <button class="tab-btn" data-tab="tab-github">${ICONS.github}<span>GitHub</span></button>
     </div>
   </div>
 
@@ -812,8 +968,8 @@ export class ShooraUnifiedHubViewProvider implements vscode.WebviewViewProvider 
           Hello! I am your <b>SHOORA AI Agent</b>.
           <br/><br/>
           I have 25 integrated tools to help you develop, run tests, commit to GitHub, and deploy to AWS.
-          <div style="margin-top: 8px; font-size: 11px; opacity: 0.85;">
-            💡 <i>Try: "Inspect project and run tests", "Deploy to AWS", or "Create GitHub PR"</i>
+          <div style="margin-top: 8px; font-size: 11px; display: flex; align-items: center; gap: 6px; opacity: 0.85;">
+            ${ICONS.sparkle} <i>Try: "Inspect project and run tests", "Deploy to AWS", or "Create GitHub PR"</i>
           </div>
         </div>
       </div>
@@ -823,7 +979,7 @@ export class ShooraUnifiedHubViewProvider implements vscode.WebviewViewProvider 
         <div style="display: flex; justify-content: space-between; align-items: center;">
           <button class="btn btn-secondary" id="clearChatBtn" style="width: auto; padding: 4px 8px; font-size: 11px;">Clear</button>
           <div style="flex: 1;"></div>
-          <button class="btn" id="sendBtn" style="width: auto; padding: 5px 16px;">Send ➜</button>
+          <button class="btn" id="sendBtn" style="width: auto; padding: 5px 16px;"><span>Send</span> ${ICONS.send}</button>
         </div>
       </div>
     </div>
@@ -833,8 +989,8 @@ export class ShooraUnifiedHubViewProvider implements vscode.WebviewViewProvider 
       <!-- Overview Card -->
       <div class="glass-card">
         <div class="card-title-row">
-          <div class="card-title"><span>📁</span><span id="proj-title">Workspace</span></div>
-          <button class="btn btn-secondary" id="refreshStatusBtn" style="width:auto; padding:3px 8px; font-size:10px;">🔄</button>
+          <div class="card-title">${ICONS.folder}<span id="proj-title">Workspace</span></div>
+          <button class="btn btn-secondary anim-spin-hover" id="refreshStatusBtn" style="width:auto; padding:3px 7px;" title="Refresh">${ICONS.refresh}</button>
         </div>
         <div class="metrics-grid">
           <div class="metric-box">
@@ -858,7 +1014,7 @@ export class ShooraUnifiedHubViewProvider implements vscode.WebviewViewProvider 
 
       <!-- Pipeline Delivery Card -->
       <div class="glass-card">
-        <div class="card-title"><span>🚀</span><span>DELIVERY PIPELINE</span></div>
+        <div class="card-title">${ICONS.rocket}<span>DELIVERY PIPELINE</span></div>
         <div class="pipeline-track">
           <div class="pipeline-step">
             <div class="step-circle done" id="pipe-code">✓</div>
@@ -881,7 +1037,7 @@ export class ShooraUnifiedHubViewProvider implements vscode.WebviewViewProvider 
           </div>
         </div>
         <div id="prod-url-container" style="margin-top: 8px; display: none;">
-          <a href="#" class="url-link" id="prod-url-link" target="_blank">🔗 Open Live Production</a>
+          <a href="#" class="url-link" id="prod-url-link" target="_blank">${ICONS.link} <span>Open Live Production</span></a>
         </div>
       </div>
     </div>
@@ -890,22 +1046,22 @@ export class ShooraUnifiedHubViewProvider implements vscode.WebviewViewProvider 
     <div id="tab-cloud" class="view-panel">
       <div class="glass-card">
         <div class="card-title-row">
-          <div class="card-title"><span>☁️</span><span id="cloud-provider-name">AWS App Runner</span></div>
+          <div class="card-title">${ICONS.cloud}<span id="cloud-provider-name">AWS App Runner</span></div>
           <div class="status-pill live" id="cloud-conn-pill">● Connected</div>
         </div>
         <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 8px;" id="cloud-region-text">
           Region: us-east-1
         </div>
         <div class="btn-group">
-          <button class="btn" id="cloudDeployBtn">🚀 Redeploy</button>
-          <button class="btn btn-secondary" id="cloudRollbackBtn">⏪ Rollback</button>
-          <button class="btn btn-secondary" id="cloudLogsBtn">📜 Logs</button>
+          <button class="btn" id="cloudDeployBtn">${ICONS.rocket}<span>Redeploy</span></button>
+          <button class="btn btn-secondary" id="cloudRollbackBtn">${ICONS.rollback}<span>Rollback</span></button>
+          <button class="btn btn-secondary" id="cloudLogsBtn">${ICONS.logs}<span>Logs</span></button>
         </div>
       </div>
 
       <!-- Stages & Health -->
       <div class="glass-card">
-        <div class="card-title"><span>⚡</span><span>STAGE MONITOR</span></div>
+        <div class="card-title">${ICONS.bolt}<span>STAGE MONITOR</span></div>
         <div class="metrics-grid" style="margin-top: 8px;">
           <div class="metric-box">
             <span class="metric-label">BUILD</span>
@@ -917,7 +1073,7 @@ export class ShooraUnifiedHubViewProvider implements vscode.WebviewViewProvider 
           </div>
         </div>
         <div id="cloud-live-url-box" style="margin-top: 10px; display: none;">
-          <a href="#" class="url-link" id="cloud-live-url" target="_blank">🔗 Open Deployment URL</a>
+          <a href="#" class="url-link" id="cloud-live-url" target="_blank">${ICONS.link} <span>Open Deployment URL</span></a>
         </div>
       </div>
     </div>
@@ -926,16 +1082,16 @@ export class ShooraUnifiedHubViewProvider implements vscode.WebviewViewProvider 
     <div id="tab-github" class="view-panel">
       <div class="glass-card">
         <div class="card-title-row">
-          <div class="card-title"><span>🐙</span><span>ACCOUNT & REPO</span></div>
+          <div class="card-title">${ICONS.github}<span>ACCOUNT & REPO</span></div>
           <div class="status-pill live" id="gh-conn-pill">Connected</div>
         </div>
         <div style="font-size: 11.5px; margin-bottom: 8px;" id="gh-repo-name">
           Repository: Connecting...
         </div>
         <div class="btn-group" style="flex-direction: column;">
-          <button class="btn" id="ghCreateRepoBtn">➕ Create GitHub Repo & Push</button>
-          <button class="btn btn-secondary" id="ghPushBtn">⬆ Push Commits</button>
-          <button class="btn btn-secondary" id="ghCreatePRBtn">🔀 Create Pull Request</button>
+          <button class="btn" id="ghCreateRepoBtn">${ICONS.plus}<span>Create GitHub Repo & Push</span></button>
+          <button class="btn btn-secondary" id="ghPushBtn">${ICONS.push}<span>Push Commits</span></button>
+          <button class="btn btn-secondary" id="ghCreatePRBtn">${ICONS.pr}<span>Create Pull Request</span></button>
         </div>
       </div>
     </div>
@@ -944,6 +1100,7 @@ export class ShooraUnifiedHubViewProvider implements vscode.WebviewViewProvider 
 
   <script>
     const vscode = acquireVsCodeApi();
+    const ICONS_MAP = ${JSON.stringify(ICONS)};
 
     // Tab Switching Logic
     const tabBtns = document.querySelectorAll('.tab-btn');
@@ -1014,7 +1171,7 @@ export class ShooraUnifiedHubViewProvider implements vscode.WebviewViewProvider 
       } else if (msg.type === 'chatCleared') {
         msgContainer.innerHTML = '<div class="chat-msg ai">Conversation reset. Ready for a new task!</div>';
       } else if (msg.type === 'aiError') {
-        appendMsg('ai', '❌ ' + msg.error);
+        appendMsg('ai', '<span style="display:flex;align-items:center;gap:6px;color:#EF4444;">' + ICONS_MAP.error + ' ' + escapeHtml(msg.error) + '</span>');
       } else if (msg.type === 'agentEvent') {
         renderAgentEvent(msg.event);
       }
@@ -1030,7 +1187,10 @@ export class ShooraUnifiedHubViewProvider implements vscode.WebviewViewProvider 
       if (ev.type === 'thought') {
         const p = document.createElement('div');
         p.style.marginBottom = '6px';
-        p.innerHTML = '💭 ' + escapeHtml(ev.data.text);
+        p.style.display = 'flex';
+        p.style.alignItems = 'center';
+        p.style.gap = '6px';
+        p.innerHTML = ICONS_MAP.sparkle + ' <span>' + escapeHtml(ev.data.text) + '</span>';
         currentAiCard.appendChild(p);
       } else if (ev.type === 'tool_start') {
         const box = document.createElement('div');
@@ -1039,7 +1199,10 @@ export class ShooraUnifiedHubViewProvider implements vscode.WebviewViewProvider 
         box.style.borderRadius = '4px';
         box.style.margin = '4px 0';
         box.style.fontSize = '11px';
-        box.innerHTML = '⚙️ Executing <b>' + ev.data.name + '</b>...';
+        box.style.display = 'flex';
+        box.style.alignItems = 'center';
+        box.style.gap = '6px';
+        box.innerHTML = ICONS_MAP.gear + ' <span>Executing <b>' + ev.data.name + '</b>...</span>';
         currentAiCard.appendChild(box);
       } else if (ev.type === 'final_answer') {
         const ans = document.createElement('div');
@@ -1065,7 +1228,7 @@ export class ShooraUnifiedHubViewProvider implements vscode.WebviewViewProvider 
       if (ov.production.isLive && ov.production.url) {
         document.getElementById('prod-url-container').style.display = 'block';
         const a = document.getElementById('prod-url-link');
-        a.textContent = '🔗 ' + ov.production.url;
+        a.innerHTML = ICONS_MAP.link + ' <span>' + escapeHtml(ov.production.url) + '</span>';
         a.onclick = (e) => { e.preventDefault(); vscode.postMessage({ type: 'openUrl', url: ov.production.url }); };
       }
 
@@ -1075,7 +1238,7 @@ export class ShooraUnifiedHubViewProvider implements vscode.WebviewViewProvider 
       if (d.cloud.latestDeploy?.url) {
         document.getElementById('cloud-live-url-box').style.display = 'block';
         const ca = document.getElementById('cloud-live-url');
-        ca.textContent = '🔗 ' + d.cloud.latestDeploy.url;
+        ca.innerHTML = ICONS_MAP.link + ' <span>' + escapeHtml(d.cloud.latestDeploy.url) + '</span>';
         ca.onclick = (e) => { e.preventDefault(); vscode.postMessage({ type: 'openUrl', url: d.cloud.latestDeploy.url }); };
       }
 
