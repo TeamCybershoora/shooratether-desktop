@@ -1,3 +1,27 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-  <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
+  <defs>
+    <linearGradient id="shooraGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#00E5FF" />
+      <stop offset="50%" stop-color="#3B82F6" />
+      <stop offset="100%" stop-color="#8B5CF6" />
+    </linearGradient>
+    <filter id="shooraGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="1.5" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+  </defs>
+  <!-- Futuristic Shoora AI Bolt / Cyber Crest -->
+  <polygon points="13 2 3 14 11 14 10 22 21 10 13 10 13 2"
+           fill="url(#shooraGradient)"
+           stroke="#00E5FF"
+           stroke-width="1.2"
+           stroke-linecap="round"
+           stroke-linejoin="round"
+           filter="url(#shooraGlow)">
+    <animate attributeName="opacity" values="0.9;1;0.9" dur="2.5s" repeatCount="indefinite" />
+  </polygon>
+  <!-- Energy Core Center -->
+  <circle cx="12" cy="12" r="1.5" fill="#FFFFFF" opacity="0.95">
+    <animate attributeName="r" values="1;2;1" dur="2s" repeatCount="indefinite" />
+  </circle>
 </svg>

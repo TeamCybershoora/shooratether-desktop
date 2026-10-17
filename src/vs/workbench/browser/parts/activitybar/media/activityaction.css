@@ -228,3 +228,95 @@
 	left: auto;
 	right: 0;
 }
+
+/* -------------------------------------------------------------------------
+ * SHOORA TETHER: Animated Activity Bar Icons
+ * Smooth hover animations, glowing pulse, and active bounce effects for
+ * Explorer, Search, Source Control, Run/Debug, Extensions, and Shoora AI.
+ * ------------------------------------------------------------------------- */
+
+.monaco-workbench .activitybar > .content :not(.monaco-menu) > .monaco-action-bar .action-item {
+	transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.monaco-workbench .activitybar > .content :not(.monaco-menu) > .monaco-action-bar .action-label {
+	transition: transform 0.26s cubic-bezier(0.34, 1.56, 0.64, 1),
+	            filter 0.26s ease,
+	            opacity 0.2s ease;
+	transform-origin: center center;
+}
+
+/* Hover: Lift + subtle scale + glowing icon effect */
+.monaco-workbench .activitybar > .content :not(.monaco-menu) > .monaco-action-bar .action-item:hover .action-label {
+	transform: scale(1.16) translateY(-1px);
+	filter: drop-shadow(0 2px 6px rgba(0, 122, 255, 0.45));
+}
+
+/* Click / Active: tactile press bounce */
+.monaco-workbench .activitybar > .content :not(.monaco-menu) > .monaco-action-bar .action-item:active .action-label {
+	transform: scale(0.92);
+	transition-duration: 0.08s;
+}
+
+/* Checked / Selected Item: Soft pulsing glow indicator */
+.monaco-workbench .activitybar > .content :not(.monaco-menu) > .monaco-action-bar .action-item.checked .action-label {
+	filter: drop-shadow(0 0 8px rgba(0, 212, 255, 0.65));
+	animation: shooraIconPulse 3.5s ease-in-out infinite;
+}
+
+/* Distinctive hover animations per activity bar icon */
+/* Explorer / Files: Subtle tilt */
+.monaco-workbench .activitybar > .content :not(.monaco-menu) > .monaco-action-bar .action-item:hover .action-label.codicon-explorer-view-icon,
+.monaco-workbench .activitybar > .content :not(.monaco-menu) > .monaco-action-bar .action-item:hover .action-label.codicon-files {
+	transform: scale(1.18) rotate(-4deg);
+	filter: drop-shadow(0 2px 8px rgba(52, 152, 219, 0.5));
+}
+
+/* Search: Zoom + tilt */
+.monaco-workbench .activitybar > .content :not(.monaco-menu) > .monaco-action-bar .action-item:hover .action-label.codicon-search-view-icon,
+.monaco-workbench .activitybar > .content :not(.monaco-menu) > .monaco-action-bar .action-item:hover .action-label.codicon-search {
+	transform: scale(1.2) rotate(6deg);
+	filter: drop-shadow(0 2px 8px rgba(241, 196, 15, 0.5));
+}
+
+/* Source Control (Git): Gentle wave */
+.monaco-workbench .activitybar > .content :not(.monaco-menu) > .monaco-action-bar .action-item:hover .action-label.codicon-source-control-view-icon,
+.monaco-workbench .activitybar > .content :not(.monaco-menu) > .monaco-action-bar .action-item:hover .action-label.codicon-source-control {
+	transform: scale(1.18) translateY(-2px);
+	filter: drop-shadow(0 2px 8px rgba(46, 204, 113, 0.5));
+}
+
+/* Run & Debug: Energy pulse */
+.monaco-workbench .activitybar > .content :not(.monaco-menu) > .monaco-action-bar .action-item:hover .action-label.codicon-run-view-icon,
+.monaco-workbench .activitybar > .content :not(.monaco-menu) > .monaco-action-bar .action-item:hover .action-label.codicon-debug-alt {
+	transform: scale(1.2) rotate(-8deg);
+	filter: drop-shadow(0 2px 8px rgba(231, 76, 60, 0.55));
+}
+
+/* Extensions: Dynamic spin peek */
+.monaco-workbench .activitybar > .content :not(.monaco-menu) > .monaco-action-bar .action-item:hover .action-label.codicon-extensions-view-icon,
+.monaco-workbench .activitybar > .content :not(.monaco-menu) > .monaco-action-bar .action-item:hover .action-label.codicon-extensions {
+	transform: scale(1.18) rotate(8deg);
+	filter: drop-shadow(0 2px 8px rgba(155, 89, 182, 0.55));
+}
+
+/* SHOORA AI Icon: Glowing lightning aura pulse */
+.monaco-workbench .activitybar > .content :not(.monaco-menu) > .monaco-action-bar .action-label.uri-icon {
+	transition: transform 0.28s cubic-bezier(0.34, 1.56, 0.64, 1),
+	            filter 0.28s ease;
+}
+
+.monaco-workbench .activitybar > .content :not(.monaco-menu) > .monaco-action-bar .action-item:hover .action-label.uri-icon {
+	transform: scale(1.22) translateY(-2px);
+	filter: drop-shadow(0 0 10px rgba(0, 229, 255, 0.85)) drop-shadow(0 0 16px rgba(0, 140, 255, 0.45));
+}
+
+@keyframes shooraIconPulse {
+	0%, 100% {
+		filter: drop-shadow(0 0 6px rgba(0, 180, 255, 0.4));
+	}
+	50% {
+		filter: drop-shadow(0 0 14px rgba(0, 220, 255, 0.85));
+	}
+}
+
