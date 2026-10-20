@@ -340,4 +340,19 @@ export class LLMClient {
 
         return { content: responseText };
     }
+
+    public async generateText(prompt: string, systemPrompt?: string): Promise<string> {
+        const emptyRegistry = new ToolRegistry();
+        const messages: AgentMessage[] = [];
+        if (systemPrompt) {
+            messages.push({ role: 'system', content: systemPrompt });
+        }
+        messages.push({ role: 'user', content: prompt });
+        try {
+            const res = await this.call(messages, emptyRegistry);
+            return res.content;
+        } catch (err: any) {
+            return `// SHOORA AI: ${err.message || 'Could not generate code.'}`;
+        }
+    }
 }

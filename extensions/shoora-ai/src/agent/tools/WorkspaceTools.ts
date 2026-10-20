@@ -7,6 +7,7 @@ import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
 import { AgentContext, IAgentTool, ToolResult } from '../types.js';
+import { CodebaseIndexer } from '../../indexer/CodebaseIndexer.js';
 
 function resolvePath(filePath: string, context: AgentContext): string {
     if (path.isAbsolute(filePath)) {
@@ -384,11 +385,57 @@ export const DetectFrameworkTool: IAgentTool = {
     }
 };
 
+/**
+ * Tool: codebase_search (Semantic / Symbol RAG Search)
+ */
+export const CodebaseSearchTool: IAgentTool = {
+    name: 'codebase_search',
+    description: 'Semantic & symbol RAG search across the entire project workspace. Returns relevant code snippets, line numbers, and file paths.',
+    category: 'workspace',
+    securityLevel: 'safe',
+    parameters: {
+        type: 'object',
+        properties: {
+            query: {
+                type: 'string',
+                description: 'The search query or concept (e.g. "auth middleware", "payment database models", "render header")'
+            },
+            limit: {
+                type: 'number',
+                description: 'Maximum number of code snippets to return (default: 5)'
+            }
+        },
+        required: ['query']
+    },
+    async execute(args: { query: string; limit?: number }, _context: AgentContext): Promise<ToolResult> {
+        const indexer = CodebaseIndexer.getInstance();
+        const results = indexer.search(args.query, args.limit || 5);
+        if (results.length === 0) {
+            return {
+                success: true,
+                output: `No matching code snippets found for "${args.query}".`,
+                metadata: { count: 0 }
+            };
+        }
+        let formatted = `Found ${results.length} relevant code snippet(s) for "${args.query}":\n\n`;
+        for (const r of results) {
+            formatted += `[${r.chunk.relativePath}:${r.chunk.startLine}-${r.chunk.endLine}] (Score: ${r.score})\n`;
+            formatted += `\`\`\`\n${r.chunk.snippet}\n\`\`\`\n\n`;
+        }
+        return {
+            success: true,
+            output: formatted,
+            metadata: { count: results.length }
+        };
+    }
+};
+
 export const WORKSPACE_TOOLS: IAgentTool[] = [
     ReadFileTool,
     WriteFileTool,
     EditFileTool,
     ListDirTool,
     SearchWorkspaceTool,
-    DetectFrameworkTool
+    DetectFrameworkTool,
+    CodebaseSearchTool
 ];

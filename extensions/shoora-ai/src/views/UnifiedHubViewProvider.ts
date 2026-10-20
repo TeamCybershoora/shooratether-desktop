@@ -11,6 +11,7 @@ import { GitService, GitStatusSummary } from '../git/GitService.js';
 import { GitHubService } from '../github/GitHubService.js';
 import { CloudRegistry } from '../cloud/CloudRegistry.js';
 import { DeploymentRecord, CloudLogEntry } from '../cloud/types.js';
+import { CodebaseIndexer } from '../indexer/CodebaseIndexer.js';
 
 export class ShooraUnifiedHubViewProvider implements vscode.WebviewViewProvider {
     public static readonly viewType = 'shoora.unifiedHubView';
@@ -58,7 +59,14 @@ export class ShooraUnifiedHubViewProvider implements vscode.WebviewViewProvider 
                 // Agent actions
                 case 'sendMessage':
                     try {
-                        await this.orchestrator.runTask(data.text);
+                        let taskText = data.text;
+                        if (taskText.toLowerCase().includes('@codebase')) {
+                            const indexer = CodebaseIndexer.getInstance();
+                            const cleanQuery = taskText.replace(/@codebase/gi, '').trim();
+                            const contextSnippet = indexer.formatContextForPrompt(cleanQuery, 4);
+                            taskText = `${cleanQuery}\n${contextSnippet}`;
+                        }
+                        await this.orchestrator.runTask(taskText);
                     } catch (err: any) {
                         this._view?.webview.postMessage({
                             type: 'aiError',
@@ -967,9 +975,9 @@ export class ShooraUnifiedHubViewProvider implements vscode.WebviewViewProvider 
         <div class="chat-msg ai">
           Hello! I am your <b>SHOORA AI Agent</b>.
           <br/><br/>
-          I have 25 integrated tools to help you develop, run tests, commit to GitHub, and deploy to AWS.
+          I have 26 integrated tools, <b>@codebase RAG search</b>, and inline editor superpowers (<b>Ctrl+K</b> &amp; <b>Tab Autocomplete</b>).
           <div style="margin-top: 8px; font-size: 11px; display: flex; align-items: center; gap: 6px; opacity: 0.85;">
-            ${ICONS.sparkle} <i>Try: "Inspect project and run tests", "Deploy to AWS", or "Create GitHub PR"</i>
+            ${ICONS.sparkle} <i>Try: "@codebase how is auth handled?", "Deploy to AWS", or press Ctrl+K in editor</i>
           </div>
         </div>
       </div>

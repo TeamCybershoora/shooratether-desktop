@@ -66,6 +66,9 @@ Name: "brazilianPortuguese"; MessagesFile: "compiler:Languages\BrazilianPortugue
 Name: "hungarian"; MessagesFile: "{#RepoDir}\build\win32\i18n\Default.hu.isl,{#RepoDir}\build\win32\i18n\messages.hu.isl" {#LocalizedLanguageFile("hun")}
 Name: "turkish"; MessagesFile: "compiler:Languages\Turkish.isl,{#RepoDir}\build\win32\i18n\messages.tr.isl" {#LocalizedLanguageFile("trk")}
 
+[Messages]
+StatusExtractFiles=Installing SHOORA TETHER...
+
 [InstallDelete]
 Type: filesandordirs; Name: "{app}\{#VersionedResourcesFolder}\resources\app\out"; Check: IsNotBackgroundUpdate
 Type: filesandordirs; Name: "{app}\{#VersionedResourcesFolder}\resources\app\plugins"; Check: IsNotBackgroundUpdate
@@ -1307,6 +1310,20 @@ Root: {#EnvironmentRootKey}; Subkey: "Software\Microsoft\Windows\CurrentVersion\
 Root: {#EnvironmentRootKey}; Subkey: "Software\Microsoft\Windows\CurrentVersion\App Paths\{#ApplicationName}.exe"; ValueType: none; ValueName: "Path"; Flags: deletevalue
 
 [Code]
+procedure InitializeWizard();
+begin
+  WizardForm.FilenameLabel.Visible := False;
+end;
+
+procedure CurPageChanged(CurPageID: Integer);
+begin
+  if CurPageID = wpInstalling then
+  begin
+    WizardForm.FilenameLabel.Visible := False;
+    WizardForm.StatusLabel.Caption := 'Installing SHOORA TETHER...';
+  end;
+end;
+
 // Imports MultiByteToWideChar to decode UTF-8 bytes (LoadStringFromFile returns raw bytes) into a Unicode string.
 function MultiByteToWideChar(CodePage: Cardinal; dwFlags: Cardinal; const lpMultiByteStr: AnsiString; cbMultiByte: Integer; lpWideCharStr: String; cchWideChar: Integer): Integer;
   external 'MultiByteToWideChar@kernel32.dll stdcall';

@@ -10,6 +10,9 @@ import { GitHubViewProvider } from './views/GitHubViewProvider.js';
 import { CloudViewProvider } from './views/CloudViewProvider.js';
 import { ProjectStatusProvider } from './views/ProjectStatusProvider.js';
 import { ShooraUnifiedHubViewProvider } from './views/UnifiedHubViewProvider.js';
+import { CodebaseIndexer } from './indexer/CodebaseIndexer.js';
+import { InlineEditProvider } from './editor/InlineEditProvider.js';
+import { ShooraInlineCompletionProvider } from './editor/InlineCompletionProvider.js';
 
 let globalOrchestrator: AgentOrchestrator | undefined;
 let globalHubProvider: ShooraUnifiedHubViewProvider | undefined;
@@ -72,45 +75,48 @@ export function activate(context: vscode.ExtensionContext) {
         projectRefreshCmd
     );
 
-    // Ctrl+K Inline Edit Command
-    const inlineEditCmd = vscode.commands.registerCommand('shoora.inlineEdit', async () => {
-        const editor = vscode.window.activeTextEditor;
-        if (!editor) {
-            vscode.window.showWarningMessage('Open a file first to use SHOORA Inline Edit.');
-            return;
-        }
+    // 1. Initialize Codebase Indexer (RAG Search)
+    const indexer = CodebaseIndexer.getInstance();
+    indexer.indexWorkspace();
+    vscode.workspace.onDidChangeWorkspaceFolders(() => {
+        indexer.indexWorkspace();
+    });
 
-        const selection = editor.selection;
-        const selectedText = editor.document.getText(selection);
-
-        const prompt = await vscode.window.showInputBox({
-            prompt: 'SHOORA AI (Ctrl+K): Describe the code to generate or modify',
-            placeHolder: 'e.g. refactor to async/await, add error handling, generate React component...'
-        });
-
-        if (!prompt) return;
-
+    const reindexCmd = vscode.commands.registerCommand('shoora.reindexCodebase', async () => {
         await vscode.window.withProgress({
             location: vscode.ProgressLocation.Notification,
-            title: "SHOORA AI is generating code...",
-            cancellable: false
+            title: "SHOORA AI: Indexing codebase..."
         }, async () => {
-            try {
-                const fullTask = `Generate or edit code for active file "${editor.document.fileName}". Selection was:\n${selectedText}\nUser request: ${prompt}\nPlease output only the replacement code snippet.`;
-                const generatedCode = await orchestrator.runTask(fullTask, 3);
-                await editor.edit(editBuilder => {
-                    if (selection.isEmpty) {
-                        editBuilder.insert(selection.active, generatedCode);
-                    } else {
-                        editBuilder.replace(selection, generatedCode);
-                    }
-                });
-                vscode.window.showInformationMessage('✓ Code applied by SHOORA AI');
-            } catch (err: any) {
-                vscode.window.showErrorMessage(`SHOORA AI Error: ${err.message || err}`);
-            }
+            await indexer.indexWorkspace();
+            const stats = indexer.getStats();
+            vscode.window.showInformationMessage(`✓ Indexed ${stats.indexedFiles} files (${stats.chunksCount} code chunks).`);
         });
     });
+
+    // 2. Initialize Interactive Inline Edit (Ctrl+K)
+    const inlineEditProvider = new InlineEditProvider();
+    const inlineEditCmd = vscode.commands.registerCommand('shoora.inlineEdit', async () => {
+        await inlineEditProvider.executeInlineEdit();
+    });
+
+    // 3. Initialize AI Autocomplete (Tab Ghost Text)
+    const inlineCompletionProvider = new ShooraInlineCompletionProvider();
+    const inlineCompletionRegistration = vscode.languages.registerInlineCompletionItemProvider(
+        { pattern: '**' },
+        inlineCompletionProvider
+    );
+
+    const toggleAutocompleteCmd = vscode.commands.registerCommand('shoora.toggleAutocomplete', () => {
+        inlineCompletionProvider.toggle();
+    });
+
+    context.subscriptions.push(
+        reindexCmd,
+        inlineEditCmd,
+        inlineCompletionRegistration,
+        inlineCompletionProvider.getStatusBarItem(),
+        toggleAutocompleteCmd
+    );
 
     const openChatCmd = vscode.commands.registerCommand('shoora.openChat', () => {
         vscode.commands.executeCommand('shoora.chatView.focus');

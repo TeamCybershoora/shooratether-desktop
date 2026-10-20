@@ -139,6 +139,16 @@
         "command": "shoora.clearChat",
         "title": "SHOORA: Clear Conversation",
         "category": "SHOORA AI"
+      },
+      {
+        "command": "shoora.toggleAutocomplete",
+        "title": "SHOORA: Toggle AI Autocomplete (Tab)",
+        "category": "SHOORA AI"
+      },
+      {
+        "command": "shoora.reindexCodebase",
+        "title": "SHOORA: Reindex Codebase (RAG Index)",
+        "category": "SHOORA AI"
       }
     ],
     "keybindings": [
