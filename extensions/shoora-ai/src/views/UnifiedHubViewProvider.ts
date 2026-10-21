@@ -12,6 +12,7 @@ import { GitHubService } from '../github/GitHubService.js';
 import { CloudRegistry } from '../cloud/CloudRegistry.js';
 import { DeploymentRecord, CloudLogEntry } from '../cloud/types.js';
 import { CodebaseIndexer } from '../indexer/CodebaseIndexer.js';
+import { AuthService, UserProfile } from '../auth/AuthService.js';
 
 export class ShooraUnifiedHubViewProvider implements vscode.WebviewViewProvider {
     public static readonly viewType = 'shoora.unifiedHubView';
@@ -19,6 +20,7 @@ export class ShooraUnifiedHubViewProvider implements vscode.WebviewViewProvider 
     private gitService = new GitService();
     private githubService = GitHubService.getInstance();
     private cloudRegistry = CloudRegistry.getInstance();
+    private authService: AuthService = AuthService.getInstance();
     private pendingApprovalResolve?: (approved: boolean) => void;
 
     constructor(
@@ -30,6 +32,9 @@ export class ShooraUnifiedHubViewProvider implements vscode.WebviewViewProvider 
             if (this._view) {
                 this._view.webview.postMessage({ type: 'agentEvent', event });
             }
+        });
+        this.authService.onDidChangeUser(() => {
+            this.broadcastAllData();
         });
     }
 
@@ -86,6 +91,17 @@ export class ShooraUnifiedHubViewProvider implements vscode.WebviewViewProvider 
                         this.pendingApprovalResolve(data.approved === true);
                         this.pendingApprovalResolve = undefined;
                     }
+                    break;
+
+                // Auth actions
+                case 'authLoginGoogle':
+                    await this.authService.loginWithGoogle();
+                    break;
+                case 'authLoginGitHub':
+                    await this.authService.loginWithGitHub();
+                    break;
+                case 'authLogout':
+                    await this.authService.logout();
                     break;
 
                 // Tab data refresh
@@ -217,6 +233,10 @@ export class ShooraUnifiedHubViewProvider implements vscode.WebviewViewProvider 
             type: 'state',
             data: {
                 projectName,
+                auth: {
+                    isLoggedIn: this.authService.isLoggedIn(),
+                    user: this.authService.getUser()
+                },
                 overview: {
                     code: { errorCount, warningCount, isClean: errorCount === 0 },
                     git: {
@@ -428,7 +448,10 @@ export class ShooraUnifiedHubViewProvider implements vscode.WebviewViewProvider 
         send: `<svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2" fill="rgba(255,255,255,0.2)"/></svg>`,
         sparkle: `<svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="#00E5FF" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l2.4 7.2L22 12l-7.6 2.8L12 22l-2.4-7.2L2 12l7.6-2.8z" fill="rgba(0,229,255,0.25)" class="anim-sparkle"/></svg>`,
         gear: `<svg class="svg-icon spin-icon" viewBox="0 0 24 24" fill="none" stroke="#00E5FF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>`,
-        error: `<svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="#EF4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10" fill="rgba(239,68,68,0.2)"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>`
+        error: `<svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="#EF4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10" fill="rgba(239,68,68,0.2)"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>`,
+        google: `<svg class="svg-icon svg-icon-sm" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/></svg>`,
+        userIcon: `<svg class="svg-icon svg-icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>`,
+        signOut: `<svg class="svg-icon svg-icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>`
     };
 
     private _getHtmlForWebview(): string {
@@ -503,6 +526,184 @@ export class ShooraUnifiedHubViewProvider implements vscode.WebviewViewProvider 
       color: var(--accent);
       border: 1px solid rgba(0, 229, 255, 0.3);
       font-weight: 600;
+    }
+
+    /* User Profile & Auth Styling in Header */
+    .user-header-wrap {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .user-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 2px 7px;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 14px;
+      font-size: 11px;
+      font-weight: 500;
+      max-width: 170px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .user-avatar {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 1px solid var(--accent);
+      flex-shrink: 0;
+    }
+
+    .user-avatar-fallback {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #00E5FF 0%, #8B5CF6 100%);
+      color: #000;
+      font-size: 10px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .plan-pill {
+      font-size: 9px;
+      font-weight: 700;
+      text-transform: uppercase;
+      padding: 1px 5px;
+      border-radius: 8px;
+      letter-spacing: 0.3px;
+      flex-shrink: 0;
+    }
+
+    .plan-pill.free {
+      background: rgba(255, 255, 255, 0.1);
+      color: #94A3B8;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+    }
+
+    .plan-pill.pro, .plan-pill.team, .plan-pill.enterprise {
+      background: rgba(0, 229, 255, 0.2);
+      color: #00E5FF;
+      border: 1px solid rgba(0, 229, 255, 0.4);
+      box-shadow: 0 0 8px rgba(0, 229, 255, 0.3);
+    }
+
+    .logout-icon-btn {
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      color: var(--text-muted);
+      padding: 3px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 4px;
+      transition: all 0.2s;
+    }
+
+    .logout-icon-btn:hover {
+      color: var(--red);
+      background: rgba(239, 68, 68, 0.15);
+    }
+
+    .btn-header-login {
+      font-size: 10.5px;
+      font-weight: 600;
+      padding: 3px 8px;
+      border-radius: 6px;
+      background: rgba(0, 229, 255, 0.12);
+      color: var(--accent);
+      border: 1px solid rgba(0, 229, 255, 0.3);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      transition: all 0.2s;
+    }
+
+    .btn-header-login:hover {
+      background: rgba(0, 229, 255, 0.25);
+      border-color: var(--accent);
+    }
+
+    /* Auth Banner in Agent tab */
+    .auth-banner-card {
+      background: linear-gradient(135deg, rgba(0, 229, 255, 0.08) 0%, rgba(139, 92, 246, 0.08) 100%);
+      border: 1px solid rgba(0, 229, 255, 0.25);
+      border-radius: 8px;
+      padding: 10px 12px;
+      margin-bottom: 12px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    }
+
+    .auth-banner-header {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      margin-bottom: 8px;
+    }
+
+    .auth-banner-title {
+      font-size: 12px;
+      font-weight: 700;
+      color: #FFFFFF;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .auth-banner-sub {
+      font-size: 10.5px;
+      color: var(--text-muted);
+      line-height: 1.35;
+    }
+
+    .auth-banner-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 6px;
+    }
+
+    .btn-oauth {
+      flex: 1;
+      padding: 6px 8px;
+      font-size: 11px;
+      font-weight: 600;
+      border-radius: 6px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      transition: all 0.2s ease;
+    }
+
+    .btn-oauth.google {
+      background: rgba(255, 255, 255, 0.08);
+      color: #FFFFFF;
+    }
+    .btn-oauth.google:hover {
+      background: rgba(255, 255, 255, 0.16);
+      border-color: rgba(255, 255, 255, 0.35);
+    }
+
+    .btn-oauth.github {
+      background: rgba(0, 0, 0, 0.35);
+      color: #FFFFFF;
+    }
+    .btn-oauth.github:hover {
+      background: rgba(255, 255, 255, 0.1);
+      border-color: rgba(255, 255, 255, 0.35);
     }
 
     /* Modern Capsule Segmented Tabs */
@@ -954,7 +1155,9 @@ export class ShooraUnifiedHubViewProvider implements vscode.WebviewViewProvider 
         ${ICONS.bolt}
         <span>SHOORA AI CONTROL</span>
       </div>
-      <div class="brand-badge">Autonomous</div>
+      <div id="userHeaderArea">
+        <div class="brand-badge">Autonomous</div>
+      </div>
     </div>
 
     <!-- Capsule Tabs with Animated SVG Icons -->
@@ -971,6 +1174,7 @@ export class ShooraUnifiedHubViewProvider implements vscode.WebviewViewProvider 
 
     <!-- TAB 1: AI AGENT CHAT -->
     <div id="tab-agent" class="view-panel active">
+      <div id="authNoticeBanner" style="display:none;"></div>
       <div id="chat-messages">
         <div class="chat-msg ai">
           Hello! I am your <b>SHOORA AI Agent</b>.
@@ -1223,7 +1427,82 @@ export class ShooraUnifiedHubViewProvider implements vscode.WebviewViewProvider 
       msgContainer.scrollTop = msgContainer.scrollHeight;
     }
 
+    function renderUserAuth(auth) {
+      const headerArea = document.getElementById('userHeaderArea');
+      const bannerArea = document.getElementById('authNoticeBanner');
+      if (!headerArea) return;
+
+      if (auth && auth.isLoggedIn && auth.user) {
+        const u = auth.user;
+        const plan = (u.plan || 'free').toLowerCase();
+        const displayName = escapeHtml(u.name || u.email.split('@')[0]);
+        const avatarHtml = u.avatarUrl
+          ? '<img src="' + escapeHtml(u.avatarUrl) + '" class="user-avatar" alt="Avatar"/>'
+          : '<div class="user-avatar-fallback">' + displayName.charAt(0).toUpperCase() + '</div>';
+
+        headerArea.innerHTML = '<div class="user-header-wrap">' +
+          '<div class="user-chip" title="' + escapeHtml(u.email) + '">' +
+            avatarHtml +
+            '<span>' + displayName + '</span>' +
+            '<span class="plan-pill ' + plan + '">' + plan.toUpperCase() + '</span>' +
+          '</div>' +
+          '<button class="logout-icon-btn" id="headerLogoutBtn" title="Sign Out">' +
+            ICONS_MAP.signOut +
+          '</button>' +
+        '</div>';
+
+        document.getElementById('headerLogoutBtn')?.addEventListener('click', () => {
+          vscode.postMessage({ type: 'authLogout' });
+        });
+
+        if (bannerArea) bannerArea.style.display = 'none';
+      } else {
+        // Logged out state
+        headerArea.innerHTML = '<div class="user-header-wrap">' +
+          '<div class="brand-badge" style="margin-right:4px;">Autonomous</div>' +
+          '<button class="btn-header-login" id="headerLoginBtn">' +
+            ICONS_MAP.userIcon +
+            '<span>Sign In</span>' +
+          '</button>' +
+        '</div>';
+
+        document.getElementById('headerLoginBtn')?.addEventListener('click', () => {
+          vscode.postMessage({ type: 'authLoginGoogle' });
+        });
+
+        if (bannerArea) {
+          bannerArea.style.display = 'block';
+          bannerArea.innerHTML = '<div class="auth-banner-card">' +
+            '<div class="auth-banner-header">' +
+              '<span class="auth-banner-title">' + ICONS_MAP.sparkle + ' Connect SHOORA Account</span>' +
+              '<span class="auth-banner-sub">Sign in with Google or GitHub to sync projects, autonomous AI agent tokens, and cloud deployment pipelines.</span>' +
+            '</div>' +
+            '<div class="auth-banner-actions">' +
+              '<button class="btn-oauth google" id="btnGoogleAuth">' +
+                ICONS_MAP.google +
+                '<span>Google</span>' +
+              '</button>' +
+              '<button class="btn-oauth github" id="btnGitHubAuth">' +
+                ICONS_MAP.github +
+                '<span>GitHub</span>' +
+              '</button>' +
+            '</div>' +
+          '</div>';
+
+          document.getElementById('btnGoogleAuth')?.addEventListener('click', () => {
+            vscode.postMessage({ type: 'authLoginGoogle' });
+          });
+          document.getElementById('btnGitHubAuth')?.addEventListener('click', () => {
+            vscode.postMessage({ type: 'authLoginGitHub' });
+          });
+        }
+      }
+    }
+
     function renderState(d) {
+      if (d.auth !== undefined) {
+        renderUserAuth(d.auth);
+      }
       document.getElementById('proj-title').textContent = d.projectName;
 
       // Status

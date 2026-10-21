@@ -13,11 +13,87 @@ import { ShooraUnifiedHubViewProvider } from './views/UnifiedHubViewProvider.js'
 import { CodebaseIndexer } from './indexer/CodebaseIndexer.js';
 import { InlineEditProvider } from './editor/InlineEditProvider.js';
 import { ShooraInlineCompletionProvider } from './editor/InlineCompletionProvider.js';
+import { AuthService, UserProfile } from './auth/AuthService.js';
+import { ShooraUriHandler } from './auth/ShooraUriHandler.js';
 
 let globalOrchestrator: AgentOrchestrator | undefined;
 let globalHubProvider: ShooraUnifiedHubViewProvider | undefined;
 
 export function activate(context: vscode.ExtensionContext) {
+    // 0. Initialize Central Auth & Deep Link URI Handler
+    const authService = AuthService.initialize(context);
+    const uriHandler = new ShooraUriHandler();
+    context.subscriptions.push(vscode.window.registerUriHandler(uriHandler));
+
+    // Status Bar Item for SHOORA User Profile / Auth State
+    const authStatusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
+    authStatusBarItem.command = 'shoora.auth.showAccount';
+    context.subscriptions.push(authStatusBarItem);
+
+    const updateAuthStatusBar = (user: UserProfile | null) => {
+        if (user) {
+            const planBadge = (user.plan || 'free').toUpperCase();
+            const displayName = user.name || user.email.split('@')[0];
+            authStatusBarItem.text = `$(account) ${displayName} (${planBadge})`;
+            authStatusBarItem.tooltip = `Logged in as ${user.email}\nPlan: ${planBadge}\nProvider: ${user.authProvider}\nClick to manage account.`;
+        } else {
+            authStatusBarItem.text = `$(sign-in) Sign in to SHOORA`;
+            authStatusBarItem.tooltip = `Sign in with Google or GitHub to sync account and quotas.`;
+        }
+        authStatusBarItem.show();
+    };
+
+    authService.onDidChangeUser((user) => {
+        updateAuthStatusBar(user);
+    });
+
+    // Check & restore existing session from context.secrets
+    authService.restoreSession().then(updateAuthStatusBar);
+
+    // Register Auth Commands
+    const loginGoogleCmd = vscode.commands.registerCommand('shoora.auth.loginGoogle', async () => {
+        await authService.loginWithGoogle();
+    });
+
+    const loginGitHubCmd = vscode.commands.registerCommand('shoora.auth.loginGitHub', async () => {
+        await authService.loginWithGitHub();
+    });
+
+    const logoutCmd = vscode.commands.registerCommand('shoora.auth.logout', async () => {
+        const confirm = await vscode.window.showWarningMessage('Are you sure you want to sign out of SHOORA TETHER?', 'Sign Out', 'Cancel');
+        if (confirm === 'Sign Out') {
+            await authService.logout();
+        }
+    });
+
+    const showAccountCmd = vscode.commands.registerCommand('shoora.auth.showAccount', async () => {
+        const user = authService.getUser();
+        if (!user) {
+            const choice = await vscode.window.showQuickPick([
+                { label: '$(globe) Sign in with Google', description: 'Connect via Google OAuth', id: 'google' },
+                { label: '$(github) Sign in with GitHub', description: 'Connect via GitHub OAuth', id: 'github' }
+            ], { placeHolder: 'Sign in to SHOORA TETHER' });
+
+            if (choice?.id === 'google') await authService.loginWithGoogle();
+            if (choice?.id === 'github') await authService.loginWithGitHub();
+        } else {
+            const planBadge = (user.plan || 'free').toUpperCase();
+            const choice = await vscode.window.showQuickPick([
+                { label: `$(account) ${user.name || user.email}`, detail: `Plan: ${planBadge} | Email: ${user.email}`, id: 'info' },
+                { label: '$(globe) Open SHOORA Web Dashboard', id: 'dashboard' },
+                { label: '$(sign-out) Sign Out', id: 'logout' }
+            ], { placeHolder: `SHOORA Account (${user.email})` });
+
+            if (choice?.id === 'dashboard') {
+                vscode.env.openExternal(vscode.Uri.parse(authService.getAuthServerUrl()));
+            } else if (choice?.id === 'logout') {
+                await authService.logout();
+            }
+        }
+    });
+
+    context.subscriptions.push(loginGoogleCmd, loginGitHubCmd, logoutCmd, showAccountCmd);
+
     const orchestrator = new AgentOrchestrator();
     globalOrchestrator = orchestrator;
 

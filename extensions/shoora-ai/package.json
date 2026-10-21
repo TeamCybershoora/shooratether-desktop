@@ -149,6 +149,26 @@
         "command": "shoora.reindexCodebase",
         "title": "SHOORA: Reindex Codebase (RAG Index)",
         "category": "SHOORA AI"
+      },
+      {
+        "command": "shoora.auth.loginGoogle",
+        "title": "SHOORA: Sign in with Google",
+        "category": "SHOORA Auth"
+      },
+      {
+        "command": "shoora.auth.loginGitHub",
+        "title": "SHOORA: Sign in with GitHub",
+        "category": "SHOORA Auth"
+      },
+      {
+        "command": "shoora.auth.logout",
+        "title": "SHOORA: Sign out",
+        "category": "SHOORA Auth"
+      },
+      {
+        "command": "shoora.auth.showAccount",
+        "title": "SHOORA: Manage Account & Subscription",
+        "category": "SHOORA Auth"
       }
     ],
     "keybindings": [
@@ -192,6 +212,11 @@
           "type": "boolean",
           "default": false,
           "description": "Auto-approve sensitive operations (file writes, edits) without asking each time. Critical operations always require approval."
+        },
+        "shoora.authServerUrl": {
+          "type": "string",
+          "default": "http://localhost:5000",
+          "description": "SHOORA Central Auth & API Server URL (StackCP MySQL Backend)"
         }
       }
     }
