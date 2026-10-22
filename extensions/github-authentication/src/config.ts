@@ -9,11 +9,8 @@ export interface IConfig {
 	gitHubClientSecret?: string;
 }
 
-// For easy access to mixin client ID and secret
-//
-// NOTE: GitHub client secrets cannot be secured when running in a native client so in other words, the client secret is
-// not really a secret... so we allow the client secret in code. It is brought in before we publish VS Code. Reference:
-// https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/best-practices-for-creating-an-oauth-app#client-secrets
+// SHOORA TETHER GitHub OAuth App Credentials
 export const Config: IConfig = {
-	gitHubClientId: '01ab8ac9400c4e429b23'
+	gitHubClientId: 'Ov23lioBTmWMr4qQv7qU',
+	gitHubClientSecret: '6f3f030c3a31f3b5a6a1d8009136c07d876338a0'
 };
