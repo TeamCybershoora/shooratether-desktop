@@ -80,11 +80,14 @@ export function activate(context: vscode.ExtensionContext) {
             const planBadge = (user.plan || 'free').toUpperCase();
             const choice = await vscode.window.showQuickPick([
                 { label: `$(account) ${user.name || user.email}`, detail: `Plan: ${planBadge} | Email: ${user.email}`, id: 'info' },
-                { label: '$(globe) Open SHOORA Web Dashboard', id: 'dashboard' },
+                { label: '$(sync) Sync / Refresh Subscription Plan', description: 'Re-fetch latest plan from server', id: 'sync' },
+                { label: '$(globe) Open SHOORA Web Dashboard & Pricing', id: 'dashboard' },
                 { label: '$(sign-out) Sign Out', id: 'logout' }
             ], { placeHolder: `SHOORA Account (${user.email})` });
 
-            if (choice?.id === 'dashboard') {
+            if (choice?.id === 'sync') {
+                await authService.syncSubscription();
+            } else if (choice?.id === 'dashboard') {
                 vscode.env.openExternal(vscode.Uri.parse(authService.getAuthServerUrl()));
             } else if (choice?.id === 'logout') {
                 await authService.logout();
@@ -92,7 +95,11 @@ export function activate(context: vscode.ExtensionContext) {
         }
     });
 
-    context.subscriptions.push(loginGoogleCmd, loginGitHubCmd, logoutCmd, showAccountCmd);
+    const syncSubCmd = vscode.commands.registerCommand('shoora.auth.syncSubscription', async () => {
+        await authService.syncSubscription();
+    });
+
+    context.subscriptions.push(loginGoogleCmd, loginGitHubCmd, logoutCmd, showAccountCmd, syncSubCmd);
 
     const orchestrator = new AgentOrchestrator();
     globalOrchestrator = orchestrator;

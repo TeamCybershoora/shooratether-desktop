@@ -79,6 +79,18 @@ export class AuthService {
         }
     }
 
+    public async syncSubscription(): Promise<UserProfile | null> {
+        const user = await this.restoreSession();
+        if (user) {
+            vscode.window.showInformationMessage(
+                `✓ Subscription Synced: ${(user.plan || 'Free').toUpperCase()} Plan (${user.email})`
+            );
+        } else {
+            vscode.window.showWarningMessage('Please sign in to SHOORA to sync your subscription.');
+        }
+        return user;
+    }
+
     /**
      * Opens browser for Google OAuth Login
      */
